@@ -17,6 +17,16 @@ core you pull as a package, plus one thin config file you actually edit.
 > [Wiki](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki);
 > the release history is in [CHANGELOG.md](CHANGELOG.md).
 
+```
+You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
+         (wake word + audio)      (STT / LLM / TTS)
+```
+
+> [!TIP]
+> ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
+>
+> [![Star this repo](https://img.shields.io/github/stars/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)
+
 ## What it does
 
 ![Home Assistant entities, the LED ring animation picker, the media player and the wake-word controls](docs/features.jpg)
