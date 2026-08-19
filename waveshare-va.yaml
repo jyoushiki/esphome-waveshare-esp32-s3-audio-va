@@ -7,16 +7,13 @@
 #
 #   esphome run waveshare-va.yaml
 #
-# Everything else - the core config - is pulled
-# from GitHub at compile time (see the `packages:` block), so this is the only
-# file you ever maintain. To pick up the latest changes later:
-#
-#   esphome clean waveshare-va.yaml   # clears the package cache
-#   esphome run   waveshare-va.yaml
+# The core config is fetched from the hardware-AEC release of this fork. This
+# keeps the Home Assistant ESPHome Device Builder installation to this file and
+# secrets.yaml while retaining a reproducible package revision.
 # =============================================================================
 
 substitutions:
-  name: waveshare-va
+  name: waveshare-voice
   friendly_name: "Waveshare Voice"
 
   # Clock timezone, POSIX form (the device has no IANA database). Copy yours from
@@ -43,10 +40,10 @@ substitutions:
 
 packages:
   core:
-    url: https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va
-    ref: v1.0.0     # pinned release; bump to a newer tag, or use 'main' to track latest
+    url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va
+    ref: v1.1.0
     files:
       - base/core.yaml
-    refresh: 1d      # re-check the ref daily (a pinned tag never moves anyway)
+    refresh: 1d
 
-# Wi-Fi and the API key come from your local secrets.yaml.
+# Wi-Fi credentials come from your local secrets.yaml.

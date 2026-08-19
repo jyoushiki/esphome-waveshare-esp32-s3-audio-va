@@ -5,17 +5,26 @@
 A **Home Assistant voice satellite** running on the
 [Waveshare ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm),
 the little AI smart-speaker devkit with a dual-mic array, an ES8311 codec, three
-buttons and a 7-LED RGB ring. Pure ESPHome, no custom C firmware: an always-on
-core you pull as a package, plus one thin config file you actually edit.
+buttons and a 7-LED RGB ring. It uses ESPHome plus a pinned external audio
+component: an always-on core you pull as a package, plus one thin config file
+you actually edit.
+
+> [!NOTE]
+> This fork is based on
+> [Michał Zaniewicz's original project](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va).
+> Release `v1.1.0` adds a hardware playback-reference path,
+> dual-microphone Espressif AFE processing, local AEC, and the accompanying
+> board validation notes. The original copyright and license are preserved.
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/0eae0230-de47-4f20-a6ea-47f65af35f86" controls width="400"></video>
 </div>
 
-> **Status: stable (v1.0.0).** Wake word, STT/TTS, clean playback and the LED
-> ring are confirmed on-device. Full docs are in the
-> [Wiki](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki);
-> the release history is in [CHANGELOG.md](CHANGELOG.md).
+> **Status: stable for this fork (`v1.1.0`).** Wake word, VAD-ended
+> capture, STT/TTS, playback, the dual microphones, and the analog AEC reference
+> are confirmed on-device. The upstream project's broader documentation remains
+> available in its
+> [Wiki](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki).
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
@@ -31,9 +40,13 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 
 ![Home Assistant entities, the LED ring animation picker, the media player and the wake-word controls](docs/features.jpg)
 
-- **Voice assistant**: on-device wake word (`alexa`, `okay_nabu`) via
-  `micro_wake_word`, the full Home Assistant Assist pipeline (STT / LLM / TTS),
+- **Voice assistant**: on-device wake words via `micro_wake_word`, with
+  `hey_jarvis` enabled by default and `alexa` and `okay_nabu` available as
+  alternatives, plus the full Home Assistant Assist pipeline (STT / LLM / TTS),
   a wake beep and music ducking while it listens.
+- **Dual-mic local AEC**: both physical microphones and the board's analog
+  playback-reference channel feed Espressif's AFE, allowing wake-word detection
+  to continue while the device is speaking or playing audio.
 - **Simultaneous music and announcements**: a mixer speaker blends the media and
   announcement pipelines, so a doorbell announcement ducks the music instead of
   fighting it. Both are exposed to Music Assistant.
@@ -47,20 +60,37 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 - **Buttons**: the three onboard keys do volume down, play-pause, volume up.
 - **Boot chime**: a short "ready" sound once the device connects to HA
   (toggleable, and it also settles the amp so the ring boots silent).
-- **Tunable live from HA**: microphone mute, ES7210 mic gain, LED brightness and
-  wake-word sensitivity are all entities, so there's no reflashing to tune it.
+- **Tunable live from HA**: microphone mute, post-AFE mic gain, LED brightness
+  and wake-word sensitivity are all entities, so there's no reflashing to tune it.
+
+## Audio-quality tradeoff
+
+This release deliberately runs the shared physical codec bus at **16 kHz**,
+including the speaker output. Home Assistant and Music Assistant may still send
+48 kHz audio, but ESPHome resamples it to 16 kHz before it reaches the ES8311.
+That is well suited to wake words, Assist prompts and speech, but music is
+limited to voice-grade bandwidth and will not have the fidelity of 48 kHz
+playback.
+
+The trade is intentional: the 16 kHz bus makes both physical microphones and
+the board's sample-aligned analog playback reference fit the ESP32-S3 DMA budget,
+allowing Espressif's full-duplex AFE to perform dual-mic speech enhancement and
+local AEC. The required four-slot, 32-bit codec layout does not fit this build's
+DMA budget at 48 kHz, while the reduced-width 48 kHz layouts tested on the board
+broke playback or the complete Assist session. See
+[Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks) for the measured
+DMA geometry and validation results.
 
 ## Quick start
 
-> Requires **ESPHome 2025.8.0+**.
+> Requires **ESPHome 2026.6.5+**, ESP-IDF, and the board's octal PSRAM.
 
-1. Copy `secrets.example.yaml` to `secrets.yaml` and fill in your Wi-Fi. The
-   native API is unencrypted by default; enable encryption in `base/core.yaml`
-   if you want it (see the commented block there).
-2. Copy **`waveshare-va.yaml`** next to it and edit the `substitutions:` at the
-   top (device name, timezone, volume limits). That thin file is the only
-   firmware file you keep. The core is **pulled from GitHub at compile time**,
-   see its `packages:` block.
+1. In Home Assistant's ESPHome Device Builder directory, provide a
+   `secrets.yaml` containing `wifi_ssid` and `wifi_password`. You can copy
+   `secrets.example.yaml` as a starting point. Never commit the populated file.
+2. Copy only **`waveshare-va.yaml`** next to it and edit the `substitutions:` at
+   the top (device name, timezone, volume limits). Its `packages:` block pulls
+   `base/core.yaml` from this fork's immutable `v1.1.0` tag at compile time.
 3. **First flash over USB**, then updates go wireless:
    ```
    esphome run waveshare-va.yaml
@@ -69,12 +99,14 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
    Install.
 4. In Home Assistant: the new ESPHome device appears, open **Configure** and
    assign an Assist pipeline.
-5. Say "Alexa" (or "OK Nabu"). The ring should go violet.
+5. Say "Hey Jarvis"; the ring should go violet after it is detected. Because it
+   is the first configured model, ESPHome enables only this model on the first
+   boot. `Alexa` and `OK Nabu` are also installed and can be enabled from Home
+   Assistant. ESPHome saves and restores each model's enabled state in flash.
 
-The example config pins the `v1.0.0` release tag, so a build is reproducible. To
-move to a newer release, bump `ref:` in the `packages:` block to a later tag (or
-`main` to track the latest), then `esphome clean waveshare-va.yaml` (clears the
-package cache) and `esphome run waveshare-va.yaml`.
+The example config pins the immutable `v1.1.0` tag so Device Builder rebuilds
+are reproducible. After changing `ref:` for a future upgrade, clean the ESPHome
+build files once so the package cache is refreshed.
 
 ## Documentation
 
@@ -83,7 +115,7 @@ has the full guide:
 
 - **[Installation](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Installation)**: first flash, Home Assistant setup, updating.
 - **[Configuration](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Configuration)**: every substitution and every Home Assistant entity.
-- **[Audio architecture](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Audio-architecture)**: the shared-I2S two-bus design, in depth.
+- **[Audio architecture](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Audio-architecture)**: shared-bus TDM, dual microphones and local AEC.
 - **[LED ring](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/LED-ring)**: the state machine and every ring effect.
 - **[Hardware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Hardware)**: pinout, I2C map, and sourced gotchas.
 - **[Troubleshooting](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Troubleshooting)** and **[FAQ](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/FAQ)**.
@@ -91,31 +123,27 @@ has the full guide:
 ## How the shared I2S bus is handled
 
 The board wires the **ES8311 (DAC) and the ES7210 (ADC) to the same BCLK/LRCLK
-pins**, and only one device can drive those clocks. ESPHome also cannot run a
-single I2S bus full-duplex: a microphone and a speaker on one bus each try to
-init the port, and the second fails with "Parent bus is busy".
+pins**, and only one device can drive those clocks. Native ESPHome's independent
+microphone and speaker components cannot coordinate that peripheral while also
+exposing the ES7210 TDM channels needed for echo cancellation.
 
-The layout that works, all on **stock ESPHome components**:
-
-- **Two I2S buses** (two ports) over the shared pins. The **mic bus is the I2S
-  master**: it is always capturing for the wake word, so it drives BCLK/LRCLK/MCLK
-  continuously. The **speaker bus is a slave** that reads the mic's clock, so it
-  never needs a port of its own to master.
-- The ES8311 and ES7210 are stock and slave to the mic's clock.
-- The mic is pinned to **16-bit** (the i2s_audio default is 32-bit); since the
-  mic is master it sets the frame's slot width, and a 32-bit frame against the
-  16-bit DAC comes out as noise.
-
-This gives simultaneous capture + playback with no custom component. The
-annotated config is in the audio section of `base/core.yaml`.
+The pinned `esp_audio_stack` external component owns RX and TX together on a
+native 16 kHz voice bus. It extracts TDM slots 0 and 2 as the two physical
+microphones and slot 1 as the analog playback reference. Espressif's
+full-duplex dual-mic AFE performs AEC, noise suppression and Speech
+Enhancement/BSS, then publishes processed 16 kHz mono audio to Micro Wake Word
+and Home Assistant. A 48 kHz bus was tested with two reduced-width layouts, but
+neither preserved working playback and a complete Assist session; the required
+four-slot 32-bit layout also exceeds this build's DMA budget at 48 kHz. The
+annotated configuration is in `base/core.yaml`.
 
 ## Repository layout
 
 ```
-waveshare-va.yaml          # YOUR config: copy + edit this (pulls the rest from GitHub)
+waveshare-va.yaml          # YOUR config: copy + edit this (pulls base/core.yaml from the fork)
 secrets.example.yaml       # copy to secrets.yaml
 base/
-  core.yaml                # the always-on core, pulled as a remote package
+  core.yaml                # the always-on core package fetched by waveshare-va.yaml
 docs/
   HARDWARE.md              # pinout, I2C map, gotchas
 scripts/

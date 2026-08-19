@@ -1,5 +1,62 @@
 # Changelog
 
+## [1.1.0] - 2026-08-19
+
+Hardware-validated dual-microphone AFE/AEC release for this fork. Tagged
+`v1.1.0`; the thin Device Builder configuration pins this immutable tag.
+
+### Added
+
+- **Local echo cancellation using the board's real analog playback reference.**
+  The ES7210 exposes the two physical microphones on TDM slots 0 and 2 and the
+  attenuated ES8311 playback loopback on slot 1. The pinned `esp_audio_stack`
+  feeds them to Espressif's full-duplex AFE as `MMR` for AEC, noise suppression,
+  and dual-mic Speech Enhancement/BSS before Micro Wake Word or Home Assistant
+  receives the processed mono stream.
+- **Hardware AEC controls and diagnostics.** Home Assistant gains an Echo
+  cancellation switch, post-AFE microphone gain, and disabled-by-default level
+  sensors for all four TDM slots. These make A/B testing and future board
+  bring-up possible without changing codec gain or reflashing diagnostics.
+- **`Hey Jarvis` wake-word model**, integrated with all three sensitivity
+  profiles. Saved sensitivity is reapplied after setup.
+- Documentation of the verified TDM map, DMA geometry, 48 kHz experiments, and
+  the distinction between the board's hardware analog reference and the
+  software AEC performed by Espressif's AFE.
+
+### Changed
+
+- **Audio ownership moved from two native `i2s_audio` buses to one full-duplex
+  TDM owner.** `esp_audio_stack` now owns RX and TX together and configures the
+  ES7210 and ES8311 through `esp_codec_dev`, keeping microphones, playback, and
+  the echo reference sample-aligned.
+- **Speaker output is intentionally reduced from 48 kHz to a 16 kHz physical
+  bus.** Incoming 48 kHz announcements and media are resampled to 16 kHz. This
+  limits music to voice-grade bandwidth, but provides the DMA headroom required
+  for the four-slot, 32-bit dual-mic/reference stream and lets the AFE operate at
+  its native 16 kHz rate. On hardware, the verified geometry is 10 DMA
+  descriptors of 128 frames.
+- The ES7210 hardware gain is fixed at 24 dB so runtime changes cannot disturb
+  the microphone/reference balance used by AEC. User gain is applied after the
+  AFE instead.
+- Amplifier power now follows actual speaker ownership through audio-stack
+  lifecycle hooks, avoiding boot hiss without relying on media-player state.
+
+### Hardware validation
+
+- A 48 kHz four-slot/32-bit bus was rejected before startup because its
+  1024-sample AFE quantum computed as 20 descriptors of 192 frames, beyond the
+  component safety ceiling and measured DMA-capable memory budget.
+- A 48 kHz bus with 16-bit words and 16-bit slots started but broke startup
+  playback and wake-word recognition. Combining 16-bit words with 32-bit slots
+  restored wake detection but left playback silent and Assist capture unable to
+  complete normally.
+- The final 16 kHz/32-bit configuration played the startup chime, detected
+  `Hey Jarvis`, ended capture through VAD, recognized the spoken command,
+  completed the intent, played the response, and returned to wake-word mode.
+- During playback, reference slot 1 rose from roughly -87 dBFS to -38 dBFS while
+  unused slot 3 remained near the noise floor, confirming the electrical
+  playback-reference path.
+
 ## [1.0.0] - 2026-07-18
 
 First stable release. The full voice assistant is confirmed on hardware, the

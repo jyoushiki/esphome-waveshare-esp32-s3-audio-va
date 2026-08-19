@@ -146,17 +146,26 @@ alone keeps USB flashing alive.
 Corroboration: `MICBIAS12` biases **only** channels 1 and 2, i.e. only those two
 have actual capsules.
 
-> **Unresolved:** the demo declares its AFE input format as `"RMNM"`
-> (slot0 = reference, slot1 = mic, slot2 = null, slot3 = mic), which does not
-> reconcile with a naive MIC1 to slot0 mapping. Possibly ES7210 slot packing
-> isn't 1:1, possibly copy-paste from a Korvo BSP. Verify before relying on it.
+The board has a **hardware analog playback-reference path**, not a hardware AEC
+processor. Echo cancellation is performed in software by Espressif's AFE. The
+verified raw TDM slot map for this board revision is:
 
-**Hardware AEC is not usable from stock ESPHome on this board.** The demo packs
-4x16-bit channels into 2x32-bit I2S slots and unpacks them in software; ESPHome
-does not. This firmware takes a single mic channel and relies on ESPHome's
-software `noise_suppression_level` / `auto_gain` instead. The practical fallout:
-without AEC the mic hears the device's own speaker loudly, so barge-in features
-(a "stop" wake word during a reply) don't work here.
+| TDM slot | Signal |
+|---|---|
+| **0** | right physical microphone |
+| **1** | ES8311 playback reference (ES7210 MIC3) |
+| **2** | left physical microphone |
+| **3** | unused / near-silent |
+
+Waveshare's demo declares `"RMNM"`; that appears to be stale board-support code
+and must not be interpreted as a direct MIC-number-to-slot mapping.
+
+Stock ESPHome cannot enable ES7210 TDM, unpack these four channels from their
+32-bit TDM slots, or run ESP-SR AEC. This firmware uses the pinned external
+`esp_audio_stack` component to own the full-duplex bus and feed slots 0, 2 and 1
+to a dual-mic `esp_afe` processor as `MMR`. Its mono output is what Micro Wake
+Word and Home Assistant receive, so the local wake-word path remains active
+during playback.
 
 ## Not used by this firmware
 
@@ -194,25 +203,44 @@ unavailable.
 ### Shared I2S clocks
 
 ES8311 and ES7210 share BCLK/LRCK, so only one device may drive them. On top of
-that, **ESPHome cannot run a single `i2s_audio` bus full-duplex**: a microphone
-and a speaker on the same bus each call `i2s_new_channel` on the port, and the
-second fails at runtime with `Parent bus is busy` (the speaker then crackles).
+that, native ESPHome cannot coordinate its independent `i2s_audio` microphone
+and speaker components on one full-duplex peripheral.
 
-The layout this firmware uses, all on stock ESPHome components:
+This firmware now uses **one `esp_audio_stack` owner** in ESP-master TDM mode:
 
-- **Two `i2s_audio` buses** (two I2S ports) over the shared GPIO13/14 (with
-  `allow_other_uses`). The **mic bus is the I2S master**, the **speaker bus is a
-  slave** reading its clock.
-- The mic is always capturing for the wake word, so as master it drives
-  BCLK/LRCK/MCLK **continuously** - exactly what a slave speaker and the ES8311
-  need. It also gives the mic a correct-rate stream.
-- The mic is pinned to **16-bit**: as master it sets the frame slot width, and
-  the i2s_audio default is 32-bit, which against the 16-bit DAC produces noise.
+- One I2S peripheral owns RX and TX together, eliminating the former
+  `Parent bus is busy` problem and the two-port shared-clock workaround.
+- The physical voice bus runs natively at 16 kHz with 32-bit slots. ES7210
+  places its four 16-bit ADC channels into that frame; the stack extracts both
+  microphones and the playback reference without sample-rate conversion.
+- The 16 kHz rate is an intentional compatibility setting for
+  `esp_audio_stack` v2026.7.0. With the required 32-bit words and four slots,
+  a 48 kHz, 1024-sample AFE frame computes as 20 descriptors of 192 frames.
+  That exceeds the component's 16-descriptor safety ceiling and would require
+  about 120 KiB of DMA buffers across RX and TX. The board had only about
+  93 KiB of DMA-capable memory free before I2S setup in this build.
+- Reducing only the stored/wire word width was tested, not merely inferred.
+  At 48 kHz with 16-bit words and 16-bit slots, the stack started with
+  `10 x 384` DMA geometry, but neither the startup chime nor wake-word path
+  worked. Using 16-bit words in 32-bit slots restored wake detection, but
+  playback remained silent and the Assist capture did not complete normally.
+  These results show that a successful boot and active raw mic slots are not
+  sufficient; the codecs require the known-good 32-bit word/slot framing here.
+- Native 16 kHz with 32-bit words and slots uses `10 x 128` DMA geometry and
+  has been verified end-to-end on the board.
+- Speaker sources are resampled to the same 16 kHz shared bus. This is ideal
+  for Assist speech, but limits music playback to voice-grade bandwidth.
+- ES7210 and ES8311 are configured through `esp_codec_dev`, so the stock
+  `audio_adc` and `audio_dac` components must not also be declared.
 
-Making the **ES8311** the master instead (a `force_master`-style patch, setting
-the codec's MSC bit) also works, but it feeds the ESP mic a wrong-rate stream
-that kills the wake word. The ESP-mastered two-bus layout above needs no patch.
-See `base/core.yaml` for the annotated config.
+Hardware validation measured slots 0 and 2 at about -61 dBFS in a quiet room,
+with slot 3 near -91 dBFS. During startup-sound playback, slot 1 rose from
+about -87 dBFS to -38 dBFS while slot 3 stayed at the noise floor, confirming
+that slot 1 is the electrical playback reference. After restoring the verified
+16 kHz framing, a live run detected `Hey Jarvis`, ended capture through VAD,
+recognized the spoken command, completed the intent, and played the response.
+
+See `base/core.yaml` for the pinned component version and annotated config.
 
 ### ⚠️ Cold-boot failure of the ES7210 / LEDs: no verified fix
 
@@ -246,9 +274,8 @@ What that mechanism does **not** account for:
   MCLK up before I2C.
 
 **What this firmware does** (a mechanism-based mitigation, not a proven fix):
-ESPHome's `tca9555` writes the direction registers itself, and the `amp_enable`
-GPIO switch with `restore_mode: RESTORE_DEFAULT_ON` drives PA_EN at boot. This
-matches a community config that is reported working.
+ESPHome's `tca9555` writes the direction registers itself. `amp_enable` starts
+off, and the audio stack drives PA_EN only while the speaker path is owned.
 
 ### Amp idle hiss / turn-on pop
 
@@ -256,9 +283,8 @@ Waveshare's `Audio_Init()` orders it **codec first, amp second**
 (`es8311_codec_init()` then `Audio_PA_EN()`), with a 50 ms delay after each
 `Set_EXIO`. An amp left enabled at boot amplifies the undriven DAC line as a
 faint hiss until the first playback. This firmware gates the amp instead:
-`amp_enable` is `ALWAYS_OFF` at boot and the media_player `on_state` turns it on
-when playback starts (then leaves it on, since the speaker holds the line at
-clean silence via `timeout: never`).
+`amp_enable` is `ALWAYS_OFF` at boot; `esp_audio_stack` turns it on when the
+speaker path is required and off again after the speaker becomes idle.
 
 ### Strapping pins
 

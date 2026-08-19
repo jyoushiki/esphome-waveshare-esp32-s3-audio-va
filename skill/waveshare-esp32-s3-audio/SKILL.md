@@ -61,50 +61,60 @@ I2C addresses: **ES8311 0x18**, **ES7210 0x40**, **TCA9555 0x20**, **PCF85063 0x
 
 The TCA9555 has **no reset pin** (schematic pin 1 is `INT#`).
 
-## The one thing that defines this board: shared I2S clocks
+## The one thing that defines this board: shared I2S clocks and TDM
 
 ES8311 and ES7210 sit on the **same BCLK (13) / LRCK (14)**. Only one device may
-drive them, and **ESPHome cannot run a single i2s_audio bus full-duplex**: a
-microphone and a speaker on one bus each call `i2s_new_channel` on the port, and
-the second fails at runtime with `Parent bus is busy` (the speaker then crackles).
+drive them. Native ESPHome's independent `i2s_audio` microphone and speaker
+cannot coordinate a full-duplex peripheral here. Use the pinned
+`esp_audio_stack` component as the single owner; do not also declare native
+`i2s_audio`, `audio_adc`, or `audio_dac` components.
 
-The layout that works on **stock ESPHome** (no patched es8311):
-
-- **Two i2s_audio buses** (two I2S ports) over the shared pins. The **mic bus is
-  the master** and the **speaker bus is a slave** reading its clock.
-- The mic is always capturing for the wake word, so as master it drives
-  BCLK/LRCK/MCLK **continuously** - which is what a slave speaker (and the ES8311
-  DAC) need. Making the mic the master also gives it a correct-rate stream; a
-  codec-mastered clock (the old `force_master` route) fed the mic garbage and
-  killed wake word.
-- **Pin the mic to 16-bit.** As master it sets the frame slot width, and the
-  i2s_audio default is 32-bit; a 32-bit frame against the 16-bit ES8311/speaker
-  doubles the bit clock they expect and playback comes out as noise.
+Verified TDM slots are **0 = right mic, 1 = analog playback reference,
+2 = left mic, 3 = unused**. Capture slots `[0, 2]` and reference slot `1`.
 
 ```yaml
-i2s_audio:
-  - id: i2s_input                 # mic bus = master (drives the shared clock)
-    i2s_mclk_pin: GPIO12
-    i2s_bclk_pin:  { number: GPIO13, allow_other_uses: true }
-    i2s_lrclk_pin: { number: GPIO14, allow_other_uses: true }
-  - id: i2s_output                # speaker bus = slave
-    i2s_bclk_pin:  { number: GPIO13, allow_other_uses: true }
-    i2s_lrclk_pin: { number: GPIO14, allow_other_uses: true }
-audio_dac:   { platform: es8311, id: es8311_dac }   # stock
-audio_adc:   { platform: es7210, id: adc_mic }      # stock
-microphone:
-  - platform: i2s_audio
-    i2s_audio_id: i2s_input       # default i2s_mode: primary -> master
-    bits_per_sample: 16bit
-speaker:
-  - platform: i2s_audio
-    i2s_audio_id: i2s_output
-    i2s_mode: secondary           # slave to the mic's clock
+external_components:
+  - source: github://n-IA-hane/esphome-audio-stack@v2026.7.0
+    components: [esp_audio_stack, esp_afe]
+
+esp_audio_stack:
+  id: audio_stack
+  processor_id: afe_processor
+  sample_rate: 16000
+  output_sample_rate: 16000
+  bits_per_sample: 32
+  slot_bit_width: 32
+  i2s_mclk_pin: GPIO12
+  i2s_bclk_pin: GPIO13
+  i2s_lrclk_pin: GPIO14
+  i2s_din_pin: GPIO15
+  i2s_dout_pin: GPIO16
+  use_tdm_reference: true
+  tdm_total_slots: 4
+  tdm_mic_slots: [0, 2]
+  tdm_ref_slot: 1
+  codec:
+    input: { type: es7210, address: 0x40, mic_selected: 0x0F, gain_db: 24 }
+    output: { type: es8311, address: 0x18, use_mclk: true, no_dac_ref: true }
+
+esp_afe:
+  id: afe_processor
+  type: fd
+  mode: high_perf
+  mic_num: 2
+  input_format: mmr
+  aec_enabled: true
+  se_enabled: true
 ```
 
-Do **not** make the ES8311 the master via a `force_master`-style patch: a
-codec-mastered clock feeds the ESP mic a wrong-rate stream and kills the wake
-word. The ESP-mastered two-bus layout needs no patched component.
+Keep the shared bus at 16 kHz with `esp_audio_stack` v2026.7.0. The required
+48 kHz, four-slot, 32-bit geometry computes as 20 x 192-frame descriptors,
+exceeding the component's 16-descriptor safety ceiling and the measured
+DMA-capable memory budget. Both 48 kHz/16-bit experiments were also rejected
+on hardware: 16-bit slots broke playback and wake detection; 32-bit slots with
+16-bit words restored wake detection but left playback and the Assist session
+broken. The verified 16 kHz geometry uses 10 x 128-frame descriptors. This
+trades music bandwidth for a stable native-rate voice path.
 
 ## Gotchas that cost real time
 
@@ -113,9 +123,9 @@ word. The ESP-mastered two-bus layout needs no patched component.
   word hears real silence and the stream never restarts. **Do not "mute" by
   setting ES7210 gain to 0**, because 0 dB is *unity* gain, not silence. There
   are also `microphone.unmute` and the `microphone.is_muted` condition.
-- **ES7210 gain caps at 37.5 dB**, not 42. `set_mic_gain()` does
-  `clamp<float>(gain, MIN, MAX)` and the register steps are 3 dB up to 33 dB,
-  then 34.5/36/37.5. A slider promising more than 37.5 is lying to the user.
+- Keep the **ES7210 hardware gain fixed** (24 dB in this firmware) so runtime
+  changes do not alter the mic/reference relationship seen by AEC. Expose the
+  audio stack's post-AFE `mic_gain` number for user adjustment instead.
 - **Template switch triggers fire during `setup()`**, at `setup_priority
   HARDWARE - 2`, i.e. **before** the mic/mWW components exist, whenever
   `restore_mode` isn't `DISABLED` (`TemplateSwitch::setup()` calls
@@ -134,18 +144,16 @@ word. The ESP-mastered two-bus layout needs no patched component.
   (`cv.ensure_list(cv.int_range(0, 7))`, default `0`), not a count. This firmware
   just passes the mic directly (`microphone: i2s_mics`) and lets it default, so
   the wrapper isn't used - simplest, and Assist won't take a stereo source anyway.
-- **Hardware AEC is not reachable from stock ESPHome here.** The demo packs
-  4x16-bit ADC channels into 2x32-bit I2S slots and unpacks in software; ESPHome
-  doesn't. Use `noise_suppression_level` / `auto_gain` instead. Practical fallout:
-  the mic hears the device's own speaker loudly, so a "stop" wake word to
-  interrupt a reply does not work on this board (detected too weakly and late).
-  (The demo's declared slot order `"RMNM"` also doesn't reconcile with the
-  schematic wiring - unresolved.)
+- The board has a **hardware analog echo-reference path**, not a hardware AEC
+  DSP. Stock ESPHome cannot reach it, but this firmware's external audio stack
+  unpacks the TDM reference and runs software AEC in Espressif AFE. HA's
+  `noise_suppression_level` and `auto_gain` are not substitutes for local AEC.
 - **Cold-boot: mic + LEDs sometimes don't come up until a reset.** Reported on
   the HA forum in **a single post with zero replies, with no published root cause
   or fix.** The TCA9555 direction registers defaulting to `0xFF` (all inputs)
-  would leave PA_EN undriven, which ESPHome's `tca9555` + a `RESTORE_DEFAULT_ON`
-  GPIO switch on EXIO8 addresses. But that does **not** explain the LED symptom
+  would leave PA_EN undriven, which ESPHome's `tca9555` setup addresses before
+  the audio stack enables the `ALWAYS_OFF` GPIO switch. This does **not** explain
+  the LED symptom
   (the ring is on GPIO38/RMT, not the expander), and the reporter says replaying
   registers didn't help. Don't claim this is solved.
 - **Strapping: GPIO45 (CAM_D4) and GPIO46 (CAM_D5) must be LOW at boot.** A
@@ -161,11 +169,9 @@ word. The ESP-mastered two-bus layout needs no patched component.
 - **RGB vs GRB**: the demo says RGB and its own trailing comment says GRB, while
   WS2812B is conventionally GRB. Two sources favour `rgb_order: RGB`, but
   confirm with a pure-red test before trusting either.
-- **Idle-amp hiss at boot.** The amp (PA_EN on EXIO8) enabled at boot amplifies
-  the undriven DAC line as a faint hiss until the first playback (after which the
-  i2s speaker, `timeout: never`, holds the line at clean silence). Fix by gating
-  the amp: `restore_mode: ALWAYS_OFF`, then turn it on from the media_player
-  `on_state` when playback starts and leave it on. **Do not** try to fix this by
+- **Idle-amp hiss at boot.** Keep PA_EN on EXIO8 at `ALWAYS_OFF`; use
+  `esp_audio_stack`'s `on_amplifier_required` and `on_amplifier_idle` hooks to
+  gate it with actual speaker ownership. **Do not** try to fix this by
   playing a boot sound through the media player - a standalone boot announcement
   leaves `media_player.is_announcing` stuck true, and `on_wake_word_detected`
   then only ever stops that phantom announcement instead of starting Assist

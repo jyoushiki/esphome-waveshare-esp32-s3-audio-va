@@ -7,12 +7,10 @@
 # the TCA9555 expander) and voice timers + an alarm clock.
 #
 # AUDIO LAYOUT
-# The DAC and ADC share BCLK/LRCLK pins. Two I2S buses (two ports) ride the
-# shared pins: the mic bus is I2S master (always capturing, so it drives a
-# continuous clock) and the speaker bus is a slave that reads it. The ES8311
-# (DAC) and ES7210 (ADC) are stock and slave to the mic's clock. Capture and
-# playback run at once, on stock ESPHome, with no patched es8311 / force_master.
-# The full story is in the audio section below. Pinout: docs/HARDWARE.md.
+# esp_audio_stack owns the shared ES7210/ES8311 bus in full-duplex TDM mode.
+# Both physical microphones and the board's analog playback-reference channel
+# feed Espressif's AFE, which performs local AEC before audio reaches wake-word
+# detection or Home Assistant. The full story is below. Pinout: docs/HARDWARE.md.
 ###############################################################################
 
 substitutions:
@@ -74,7 +72,7 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  min_version: 2025.8.0
+  min_version: 2026.6.5
   on_boot:
     # Publish a "no timer" placeholder and paint the ring as early as we can, so
     # the device shows life while Wi-Fi/API are still coming up.
@@ -104,6 +102,7 @@ esphome:
         - lambda: |-
             setenv("TZ", id(saved_time_zone).c_str(), 1);
             tzset();
+        - script.execute: apply_wake_word_sensitivity
         # Diagnostics: an explicit OFF switch that silences the mic completely.
         # ON = microphone disabled. (This used to be inverted, so the mic was
         # stopped on every boot with the switch in its default OFF position.)
@@ -144,6 +143,12 @@ esp32:
 psram:
   mode: octal
   speed: 80MHz
+
+# Full-duplex TDM ownership plus Espressif's software Audio Front End. Pin this
+# dependency so codec/TDM behavior cannot change underneath a deployed device.
+external_components:
+  - source: github://n-IA-hane/esphome-audio-stack@v2026.7.0
+    components: [esp_audio_stack, esp_afe]
 
 wifi:
   id: wifi_id
@@ -228,72 +233,100 @@ time:
     on_time_sync:
       - script.execute: publish_current_time
 
-# The DAC and ADC share BCLK/LRCLK pins, but ESPHome's i2s_audio cannot run one
-# bus full-duplex (the mic and speaker each call i2s_new_channel on the port, and
-# the second fails with "Parent bus is busy"). So we use TWO buses (two I2S ports)
-# over the shared pins:
-#   - i2s_input  = the MIC bus, I2S MASTER. The mic is always capturing (wake
-#     word), so it drives BCLK/LRCLK/MCLK continuously. Using the ESP as master
-#     is what makes the mic get a correct-rate stream (a codec-mastered clock via
-#     force_master gave the mic garbage and killed wake word).
-#   - i2s_output = the SPEAKER bus, I2S SLAVE. It reads the mic's clock and only
-#     needs to output data, so it never contends for a port of its own.
-# The ES8311 (DAC) and ES7210 (ADC) are stock and slave to the mic's clock; no
-# patched es8311 / force_master is needed.
-i2s_audio:
-  - id: i2s_input
-    i2s_mclk_pin: ${i2s_mclk}
-    i2s_bclk_pin:
-      number: ${i2s_bclk}
-      allow_other_uses: true
-    i2s_lrclk_pin:
-      number: ${i2s_lrclk}
-      allow_other_uses: true
-  - id: i2s_output
-    i2s_bclk_pin:
-      number: ${i2s_bclk}
-      allow_other_uses: true
-    i2s_lrclk_pin:
-      number: ${i2s_lrclk}
-      allow_other_uses: true
+# One owner is required for sample-aligned capture and playback. The ES7210
+# emits four samples in 32-bit physical TDM slots. On this board
+# revision, slots 0 and 2 are the physical microphones, slot 1 is the attenuated
+# ES8311 playback reference, and slot 3 is unused. The stack extracts those
+# channels and feeds MMR audio to the AFE. This board requires 32-bit codec
+# words and slots for working full-duplex capture/playback. A 16 kHz bus keeps
+# the complete AFE frame and DMA headroom within the ESP32-S3's internal RAM.
+esp_audio_stack:
+  id: audio_stack
+  processor_id: afe_processor
+  sample_rate: 16000
+  output_sample_rate: 16000
+  bits_per_sample: 32
+  slot_bit_width: 32
 
-audio_adc:
-  - platform: es7210
-    id: adc_mic
-    i2c_id: internal_i2c
-    # Runtime gain lives on the `mic_gain_db` number below. The ES7210 caps at
-    # 37.5 dB; higher values are silently clamped by the driver.
-    mic_gain: 24db
+  i2s_mclk_pin: ${i2s_mclk}
+  i2s_bclk_pin: ${i2s_bclk}
+  i2s_lrclk_pin: ${i2s_lrclk}
+  i2s_din_pin: ${i2s_din}
+  i2s_dout_pin: ${i2s_dout}
 
-audio_dac:
-  - platform: es8311
-    id: es8311_dac
+  use_tdm_reference: true
+  tdm_total_slots: 4
+  tdm_mic_slots: [0, 2]
+  tdm_ref_slot: 1
+  tdm_tx_slot: 0
+
+  codec:
     i2c_id: internal_i2c
+    input:
+      type: es7210
+      address: 0x40
+      mic_selected: 0x0F
+      gain_db: 24.0
+    output:
+      type: es8311
+      address: 0x18
+      use_mclk: true
+      no_dac_ref: true
+
+  # Keep the realtime path out of scarce internal RAM where the component
+  # supports it. DMA and ESP-SR still reserve the internal memory they need.
+  audio_task_stack_in_psram: true
+  buffers_in_psram: true
+  audio_effects:
+    rate_cvt_complexity: 3
+    rate_cvt_perf_type: speed
+  master_volume_min_db: -30.0
+
+  # Gate the NS4150B from actual speaker ownership, including sounds which do
+  # not produce a useful media_player state transition.
+  on_amplifier_required:
+    - switch.turn_on: amp_enable
+  on_amplifier_idle:
+    - switch.turn_off: amp_enable
+
+# Speech-recognition AFE keeps the spectrum suitable for Micro Wake Word while
+# removing the device's own playback. Speech Enhancement/BSS combines the two
+# physical microphones into the processed mono stream exposed below.
+esp_afe:
+  id: afe_processor
+  # Full-duplex/high-performance is the appropriate AFE profile for
+  # simultaneous playback and capture, and it honors the aggressive NLP mode.
+  # The synchronized mic/reference channels already match ESP-SR's native
+  # 16 kHz, 1024-sample processing frame.
+  type: fd
+  mode: high_perf
+  mic_num: 2
+  input_format: mmr
+  aec_enabled: true
+  aec_filter_length: 4
+  aec_nlp_level: aggressive
+  se_enabled: true
+  ns_enabled: true
+  vad_enabled: false
+  agc_enabled: false
+  memory_alloc_mode: more_psram
+  feed_buf_in_psram: true
+  feed_ring_in_psram: true
+  fetch_ring_in_psram: true
 
 microphone:
-  - platform: i2s_audio
+  - platform: esp_audio_stack
     id: i2s_mics
-    i2s_audio_id: i2s_input
-    i2s_din_pin: ${i2s_din}
-    adc_type: external
-    pdm: false
-    # default i2s_mode: primary -> this bus masters the shared clock.
-    # 16-bit on purpose: as master the mic defines the frame's slot width, and
-    # the i2s_audio default is 32-bit. The ES8311/speaker are 16-bit, so a
-    # 32-bit frame doubles the bit clock they expect and playback comes out as
-    # noise. Matching 16-bit aligns the whole bus (the ES7210 is 16-bit too).
-    bits_per_sample: 16bit
+    esp_audio_stack_id: audio_stack
 
 speaker:
-  - platform: i2s_audio
+  - platform: esp_audio_stack
     id: i2s_audio_speaker
-    i2s_audio_id: i2s_output
-    i2s_dout_pin: ${i2s_dout}
-    i2s_mode: secondary          # slave to the mic bus's clock
-    dac_type: external
-    audio_dac: es8311_dac
-    timeout: never
-    buffer_duration: 100ms
+    esp_audio_stack_id: audio_stack
+    sample_rate: 16000
+    bits_per_sample: 16
+    timeout: 1s
+    buffer_duration: 128ms
 
   # Mixes the announcement and media pipelines into the one physical output.
   # Mono: the board has a single speaker (mono ES8311 + NS4150B), so a second
@@ -340,16 +373,6 @@ media_player:
           decibel_reduction: 20
           duration: 0.0s
     on_state:
-      # Amp follows playback: turn it on the instant audio starts. It stays on
-      # afterwards (the speaker then holds the line at clean silence), so there
-      # is no per-sound clicking - only the boot window is silent.
-      - if:
-          condition:
-            or:
-              - media_player.is_announcing:
-              - lambda: 'return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING;'
-          then:
-            - switch.turn_on: amp_enable
       - if:
           condition:
             and:
@@ -391,6 +414,8 @@ micro_wake_word:
   microphone: i2s_mics
   stop_after_detection: false
   models:
+    - model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/hey_jarvis.json
+      id: hey_jarvis
     - model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/alexa.json
       id: alexa
     - model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/okay_nabu.json
@@ -765,6 +790,31 @@ globals:
     restore_value: no
 
 script:
+  - id: apply_wake_word_sensitivity
+    mode: restart
+    then:
+      - lambda: |-
+          const auto x = id(wake_word_sensitivity).current_option();
+
+          if (x == "Slightly sensitive") {
+            id(hey_jarvis).set_probability_cutoff(247);  // 0.97
+            id(alexa).set_probability_cutoff(230);       // 0.90
+            id(okay_nabu).set_probability_cutoff(217);   // 0.85
+          } else if (x == "Moderately sensitive") {
+            id(hey_jarvis).set_probability_cutoff(235);  // 0.92
+            id(alexa).set_probability_cutoff(191);       // 0.75
+            id(okay_nabu).set_probability_cutoff(176);   // 0.69
+          } else if (x == "Very sensitive") {
+            id(hey_jarvis).set_probability_cutoff(212);  // 0.83
+            id(alexa).set_probability_cutoff(128);       // 0.50
+            id(okay_nabu).set_probability_cutoff(143);   // 0.56
+          }
+
+          ESP_LOGI(
+            "mww",
+            "Wake word sensitivity reapplied: %s",
+            x.c_str()
+          );
   - id: flash_ring
     then:
       - light.turn_on: { id: status_ring, red: 1.0, green: 0.0, blue: 0.0, brightness: 100%, effect: "None" }
@@ -1047,6 +1097,7 @@ script:
 select:
   - platform: template
     name: "Wake word sensitivity"
+    id: wake_word_sensitivity
     optimistic: true
     initial_option: Slightly sensitive
     restore_value: true
@@ -1059,17 +1110,7 @@ select:
     # line is the floating point value. FAPH = false accepts per hour measured
     # against the Dinner Party Corpus. Values apply to the models pinned above.
     on_value:
-      - lambda: |-
-          if (x == "Slightly sensitive") {
-            id(alexa).set_probability_cutoff(230);        // 0.90
-            id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH (manifest default)
-          } else if (x == "Moderately sensitive") {
-            id(alexa).set_probability_cutoff(191);        // 0.75
-            id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH
-          } else if (x == "Very sensitive") {
-            id(alexa).set_probability_cutoff(128);        // 0.50
-            id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH
-          }
+      - script.execute: apply_wake_word_sensitivity
 
   # Pick the ring animation for each voice-assistant phase, from HA, live.
   # The option strings must match effect names in the light's `effects:` block
@@ -1150,6 +1191,15 @@ select:
             id(saved_alarm_action) = x;
 
 switch:
+  # Explicit processor bypass for A/B testing. ON is the normal path: both
+  # microphones pass through AFE/AEC. OFF publishes the converted raw mic.
+  - platform: esp_audio_stack
+    esp_audio_stack_id: audio_stack
+    aec:
+      id: aec_enabled
+      name: "Echo cancellation"
+      restore_mode: RESTORE_DEFAULT_ON
+
   - platform: template
     id: diag_disable_mic
     name: "Diag: disable microphone"
@@ -1187,9 +1237,8 @@ switch:
       number: ${amp_ctrl}
       inverted: false
     # OFF at boot so the amp doesn't amplify the undriven DAC line as a hiss
-    # before the speaker's first playback. The media_player on_state turns it on
-    # the moment audio starts and leaves it on (the speaker then holds the line
-    # at silence, which is clean).
+    # before the speaker's first playback. Audio-stack lifecycle hooks above
+    # turn it on only while the hardware speaker path is actually required.
     restore_mode: ALWAYS_OFF
 
   - platform: template
@@ -1274,24 +1323,16 @@ switch:
       - script.execute: control_leds
 
 number:
-  - platform: template
-    id: mic_gain_db
-    name: "Mic gain (ES7210)"
-    icon: mdi:microphone-settings
-    entity_category: config
-    unit_of_measurement: dB
-    min_value: 0
-    max_value: 37.5           # ES7210 hardware ceiling - the driver clamps above this
-    step: 1.5
-    restore_value: true
-    initial_value: 24
-    mode: slider
-    set_action:
-      - lambda: |-
-          id(adc_mic).set_mic_gain(x);
-      - logger.log:
-          format: "[MIC] ES7210 gain -> %.1f dB"
-          args: ["x"]
+  # Runtime gain is deliberately applied after AEC/AFE. The ES7210 hardware
+  # gain stays at the calibrated 24 dB above so changing this control cannot
+  # alter the echo-reference relationship seen by the processor.
+  - platform: esp_audio_stack
+    esp_audio_stack_id: audio_stack
+    mic_gain:
+      id: mic_gain_db
+      name: "Mic gain (post-AFE)"
+      min_value: -20.0
+      max_value: 30.0
 
   - platform: template
     id: led_ring_brightness
@@ -1315,6 +1356,29 @@ number:
                 brightness: !lambda 'return x;'
 
 sensor:
+  # Disabled by default because these are bring-up diagnostics, not everyday
+  # entities. During verification, speech should move slots 0/2 and playback
+  # should move slot 1; slot 3 should remain near the noise floor.
+  - platform: esp_audio_stack
+    esp_audio_stack_id: audio_stack
+    tdm_slot_levels:
+      - id: tdm_slot_0_level
+        name: "TDM slot 0 level"
+        slot: 0
+        disabled_by_default: true
+      - id: tdm_slot_1_level
+        name: "TDM slot 1 level"
+        slot: 1
+        disabled_by_default: true
+      - id: tdm_slot_2_level
+        name: "TDM slot 2 level"
+        slot: 2
+        disabled_by_default: true
+      - id: tdm_slot_3_level
+        name: "TDM slot 3 level"
+        slot: 3
+        disabled_by_default: true
+
   - platform: template
     id: next_timer
     name: "Next timer"
