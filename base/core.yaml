@@ -73,6 +73,10 @@ esphome:
   name: ${name}
   friendly_name: ${friendly_name}
   min_version: 2026.6.5
+  # ESP-DL and TensorFlow Lite translation units are memory-heavy. Home
+  # Assistant's Device Builder can otherwise run several cc1plus processes in
+  # parallel and have the host OOM killer terminate them during a clean build.
+  compile_process_limit: 1
   on_boot:
     # Publish a "no timer" placeholder and paint the ring as early as we can, so
     # the device shows life while Wi-Fi/API are still coming up.
