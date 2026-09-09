@@ -144,12 +144,13 @@ psram:
   mode: octal
   speed: 80MHz
 
-# Full-duplex TDM ownership plus Espressif's software Audio Front End. Pin this
-# dependency so codec/TDM behavior cannot change underneath a deployed device.
+# Full-duplex TDM ownership plus Espressif's software Audio Front End. This
+# development branch deliberately tracks the maintainer's current dev branch;
+# main remains pinned to a stable audio-stack release.
 external_components:
-  # Development branch with validated dual-mic GMF VAD and post-AFE AGC fixes.
-  - source: github://jyoushiki/esphome-audio-stack@fix/gmf-vad-agc-state
+  - source: github://n-IA-hane/esphome-audio-stack@dev
     components: [esp_audio_stack, esp_afe]
+    refresh: 0s
 
 wifi:
   id: wifi_id
