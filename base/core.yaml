@@ -64,10 +64,13 @@ substitutions:
   # https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
   posix_timezone: "UTC0"
 
-  # One-shot "ready" chime played once the device connects to HA. Ships with the
-  # repo (16 kHz mono, a few KB). Override with any URL or local file in your thin
-  # config; the media player decodes MP3/FLAC/WAV.
-  boot_sound_file: https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/raw/main/base/sounds/startup.mp3
+  # One-shot "ready" chime played once the device connects to HA. The default is
+  # pinned to this fork so published configurations do not depend on upstream or
+  # silently change. Override with any URL or local MP3/FLAC/WAV file.
+  boot_sound_file: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/raw/ea22bd5bc6ac01fd510f85c7f7e47564d22e6c63/base/sounds/startup.mp3
+
+  # Immutable revision used for the bundled Home Assistant Voice PE sounds.
+  voice_pe_assets_ref: 0579e7b9d8504264719c593474c85447253c9dc1
 
 esphome:
   name: ${name}
@@ -417,11 +420,11 @@ media_player:
           - script.execute: control_leds_volume_changed
     files:
       - id: timer_finished_sound
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/timer_finished.flac
       - id: wake_word_triggered_sound
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/wake_word_triggered.flac
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/wake_word_triggered.flac
       - id: error_cloud_expired
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/error_cloud_expired.mp3
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/error_cloud_expired.mp3
       - id: boot_sound_custom
         file: ${boot_sound_file}
 
