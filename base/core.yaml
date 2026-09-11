@@ -72,7 +72,8 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  min_version: 2026.6.5
+  # channel_colors (used by the status ring below) requires ESPHome 2026.8.0+.
+  min_version: 2026.8.0
   on_boot:
     # Publish a "no timer" placeholder and paint the ring as early as we can, so
     # the device shows life while Wi-Fi/API are still coming up.
@@ -314,7 +315,9 @@ esp_afe:
   aec_filter_length: 4
   aec_nlp_level: aggressive
   se_enabled: true
-  ns_enabled: true
+  # ESP-SR prioritizes dual-mic Speech Enhancement/BSS and removes NS from the
+  # effective graph. Keep this explicit so the YAML matches the runtime graph.
+  ns_enabled: false
   vad_enabled: false
   # Normalize weak speech after AEC/SE without changing the calibrated analog
   # microphone/reference relationship. Start with ESP-SR's conservative WebRTC
