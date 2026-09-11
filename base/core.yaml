@@ -1207,14 +1207,26 @@ select:
             id(saved_alarm_action) = x;
 
 switch:
-  # Explicit processor bypass for A/B testing. ON is the normal path: both
-  # microphones pass through AFE/AEC. OFF publishes the converted raw mic.
-  - platform: esp_audio_stack
-    esp_audio_stack_id: audio_stack
+  # Live AEC control inside the active AFE. Disabling it leaves dual-mic BSS and
+  # post-AFE AGC running, so this entity controls only what its name says.
+  - platform: esp_afe
+    esp_afe_id: afe_processor
     aec:
       id: aec_enabled
       name: "Echo cancellation"
       restore_mode: RESTORE_DEFAULT_ON
+
+  # Complete processor bypass for diagnostic A/B recordings. ON is the normal
+  # path through AEC/BSS/AGC; OFF publishes the converted raw microphones. This
+  # is intentionally separate from the user-facing AEC control above.
+  - platform: esp_audio_stack
+    esp_audio_stack_id: audio_stack
+    aec:
+      id: afe_processing_enabled
+      name: "AFE processing"
+      restore_mode: RESTORE_DEFAULT_ON
+      entity_category: diagnostic
+      disabled_by_default: true
 
   - platform: template
     id: diag_disable_mic
