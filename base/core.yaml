@@ -108,6 +108,15 @@ esphome:
             setenv("TZ", id(saved_time_zone).c_str(), 1);
             tzset();
         - script.execute: apply_wake_word_sensitivity
+        # Apply the persisted privacy state only after the microphone component
+        # exists. The template switch reports the same backing global.
+        - if:
+            condition:
+              lambda: return id(mic_is_muted);
+            then:
+              - microphone.mute: i2s_mics
+            else:
+              - microphone.unmute: i2s_mics
         # Diagnostics: an explicit OFF switch that silences the mic completely.
         # ON = microphone disabled. (This used to be inverted, so the mic was
         # stopped on every boot with the switch in its default OFF position.)
@@ -492,12 +501,6 @@ voice_assistant:
   auto_gain: 0 dbfs
   volume_multiplier: 1
   on_client_connected:
-    - if:
-        condition:
-          - lambda: return id(init_in_progress);
-          - switch.is_on: mic_mute_switch
-        then:
-          - switch.turn_off: mic_mute_switch
     - lambda: id(init_in_progress) = false;
     # Respect the diagnostics switch - it used to be overridden here on every
     # HA (re)connect.
@@ -757,7 +760,7 @@ light:
 globals:
   - id: mic_is_muted
     type: bool
-    restore_value: no          # the switch forces OFF at boot (see on_client_connected)
+    restore_value: yes
     initial_value: 'false'
   # Transient pass-through for the current ring colour (set by led_set_effect
   # from its params right before use), so no need to persist across reboots.
@@ -1273,9 +1276,11 @@ switch:
     on_turn_off:
       - if:
           condition:
-            - lambda: return !id(init_in_progress);
-            - switch.is_off: mic_mute_switch
+            lambda: return !id(init_in_progress);
           then:
+            # Start capture even while muted: microphone.mute supplies zeros and
+            # keeps the shared I2S clock alive. A later unmute then works without
+            # needing to restart the wake-word pipeline.
             - micro_wake_word.start:
 
   - platform: gpio
@@ -1296,8 +1301,11 @@ switch:
     id: mic_mute_switch
     name: "Microphone Mute"
     icon: mdi:microphone-off
-    # State comes from the lambda below, so restore_mode would be a no-op here.
-    # The mute is forced off at boot by the voice_assistant on_client_connected.
+    # The state comes from a flash-backed global because a lambda switch cannot
+    # restore itself. DISABLED is essential: the implicit ALWAYS_OFF mode would
+    # run turn_off_action during setup and overwrite the restored global before
+    # on_boot can apply it to the initialized microphone.
+    restore_mode: DISABLED
     lambda: |-
       return id(mic_is_muted);
     # A real mute, via ESPHome's own primitive: microphone.mute makes the
