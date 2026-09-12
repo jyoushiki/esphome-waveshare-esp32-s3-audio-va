@@ -41,8 +41,8 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 ![Home Assistant entities, the LED ring animation picker, the media player and the wake-word controls](docs/features.jpg)
 
 - **Voice assistant**: on-device wake words via `micro_wake_word`, with
-  `hey_jarvis` enabled by default and `alexa` and `okay_nabu` available as
-  alternatives, plus the full Home Assistant Assist pipeline (STT / LLM / TTS),
+  `okay_nabu` enabled by default and `hey_jarvis`, `alexa` and `hey_mycroft`
+  available as alternatives, plus the full Home Assistant Assist pipeline (STT / LLM / TTS),
   a wake beep and music ducking while it listens.
 - **Dual-mic local AEC**: both physical microphones and the board's analog
   playback-reference channel feed Espressif's AFE, allowing wake-word detection
@@ -99,10 +99,11 @@ DMA geometry and validation results.
    Install.
 4. In Home Assistant: the new ESPHome device appears, open **Configure** and
    assign an Assist pipeline.
-5. Say "Hey Jarvis"; the ring should go violet after it is detected. Because it
+5. Say "OK Nabu"; the ring should go violet after it is detected. Because it
    is the first configured model, ESPHome enables only this model on the first
-   boot. `Alexa` and `OK Nabu` are also installed and can be enabled from Home
-   Assistant. ESPHome saves and restores each model's enabled state in flash.
+   boot. `Hey Jarvis`, `Alexa` and `Hey Mycroft` are also installed and can be
+   enabled from Home Assistant. ESPHome saves and restores each model's enabled
+   state in flash.
 
 The example config pins the immutable `v1.1.0` tag so Device Builder rebuilds
 are reproducible. After changing `ref:` for a future upgrade, clean the ESPHome
