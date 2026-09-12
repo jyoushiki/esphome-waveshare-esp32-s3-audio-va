@@ -148,9 +148,6 @@ esp32:
       CONFIG_SPIRAM_RODATA: "y"
       CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
 
-      CONFIG_BT_ALLOCATION_FROM_SPIRAM_FIRST: "y"
-      CONFIG_BT_BLE_DYNAMIC_ENV_MEMORY: "y"
-
       CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
       CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"
 
@@ -174,7 +171,6 @@ wifi:
   power_save_mode: none     # audio streaming hates Wi-Fi power saving
   reboot_timeout: 10min
   on_connect:
-    - lambda: id(improv_ble_in_progress) = false;
     - script.execute: control_leds
   on_disconnect:
     - script.execute: control_leds
@@ -793,10 +789,6 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'true'
-  - id: improv_ble_in_progress
-    type: bool
-    restore_value: no
-    initial_value: 'false'
   - id: boot_chime_done
     type: bool
     restore_value: no
@@ -934,7 +926,6 @@ script:
           const bool wifi_connected = id(wifi_id).is_connected();
           const bool api_connected  = id(api_id).is_connected();
           const bool ringing        = id(timer_ringing).state;
-          const bool improv_ble     = id(improv_ble_in_progress);
           const bool init_progress  = id(init_in_progress);
           const int  phase          = id(voice_assistant_phase);
 
@@ -942,18 +933,14 @@ script:
           const bool timers_active = id(is_timer_active);
 
           ESP_LOGD("led",
-                   "control_leds: wifi=%d api=%d improv=%d init=%d ringing=%d timers_active=%d phase=%d",
-                   (int)wifi_connected, (int)api_connected, (int)improv_ble, (int)init_progress,
-                   (int)ringing, (int)timers_active, phase);
+                   "control_leds: wifi=%d api=%d init=%d ringing=%d timers_active=%d phase=%d",
+                   (int)wifi_connected, (int)api_connected, (int)init_progress, (int)ringing,
+                   (int)timers_active, phase);
 
           auto set = [&](const std::string &effect, float r, float g, float b) {
             id(led_set_effect).execute(effect, r, g, b);
           };
 
-          if (improv_ble) {                          // BLE provisioning
-            set("Pulse Medium", 1.0, 0.89, 0.71);    // warm white
-            return;
-          }
           if (init_progress) {                       // booting
             if (wifi_connected) set("Rainbow Slow", 0.9, 0.1, 0.85);
             else                set("Rainbow Slow", 1.0, 0.1, 0.1);
