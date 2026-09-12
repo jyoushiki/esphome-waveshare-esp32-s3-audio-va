@@ -81,6 +81,27 @@ broke playback or the complete Assist session. See
 [Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks) for the measured
 DMA geometry and validation results.
 
+## Optional raw TDM diagnostics
+
+The normal firmware omits continuous raw-bus level monitoring. Marking an
+ESPHome entity `disabled_by_default` hides it in Home Assistant, but does not
+stop the device from sampling it inside the audio task. When investigating the
+microphones or AEC reference, add
+[`diagnostics/tdm-levels.yaml`](diagnostics/tdm-levels.yaml) as a second package:
+
+```yaml
+packages:
+  core: !include base/core.yaml
+  tdm_diagnostics: !include diagnostics/tdm-levels.yaml
+```
+
+For a remotely fetched Git package, add `diagnostics/tdm-levels.yaml` to the
+same `files:` list as `base/core.yaml` and use the same repository revision.
+The optional entities report slots 0 and 2 for the physical microphones, slot
+1 for the analog playback reference and slot 3 for the unused/noise-floor
+channel. Remove the package again after diagnosis to eliminate the periodic RMS
+work.
+
 ## Quick start
 
 > Requires **ESPHome 2026.6.5+**, ESP-IDF, and the board's octal PSRAM.

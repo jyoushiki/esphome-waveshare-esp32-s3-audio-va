@@ -1,0 +1,30 @@
+# Optional raw TDM bus-level diagnostics. Add this file as a second package
+# while investigating microphones or the analog AEC reference; do not include
+# it in normal builds because every configured slot is sampled by the audio task.
+#
+# Expected activity on the Waveshare ESP32-S3-AUDIO-Board:
+#   slot 0: right microphone
+#   slot 1: analog speaker-playback reference
+#   slot 2: left microphone
+#   slot 3: unused / noise floor
+
+sensor:
+  - platform: esp_audio_stack
+    esp_audio_stack_id: audio_stack
+    tdm_slot_levels:
+      - id: tdm_slot_0_level
+        name: "TDM slot 0 level"
+        slot: 0
+        disabled_by_default: true
+      - id: tdm_slot_1_level
+        name: "TDM slot 1 level"
+        slot: 1
+        disabled_by_default: true
+      - id: tdm_slot_2_level
+        name: "TDM slot 2 level"
+        slot: 2
+        disabled_by_default: true
+      - id: tdm_slot_3_level
+        name: "TDM slot 3 level"
+        slot: 3
+        disabled_by_default: true
