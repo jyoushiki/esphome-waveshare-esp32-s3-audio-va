@@ -1060,21 +1060,17 @@ script:
     mode: single
     then:
       - lambda: |
-          static uint32_t last_fetch_time = 0;
-          uint32_t now = millis();
-          if (now - last_fetch_time < 500) return;
-          last_fetch_time = now;
-
           const auto &timers = id(va).get_timers();
-          if (timers.empty()) return;
-
-          auto output_timer = *timers.begin();
+          const voice_assistant::Timer *next_timer = nullptr;
           for (const auto &timer : timers) {
-            if (timer.is_active && timer.seconds_left <= output_timer.seconds_left) {
-              output_timer = timer;
+            if (timer.is_active &&
+                (next_timer == nullptr || timer.seconds_left < next_timer->seconds_left)) {
+              next_timer = &timer;
             }
           }
-          id(first_active_timer) = output_timer;
+          if (next_timer != nullptr) {
+            id(first_active_timer) = *next_timer;
+          }
 
   - id: check_if_timers_active
     then:
