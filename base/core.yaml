@@ -97,8 +97,9 @@ esphome:
     - priority: -100
       then:
         # Restore the alarm settings and the timezone saved in flash.
-        - lambda: |-
-            id(alarm_time).publish_state(id(saved_alarm_time));
+        - script.execute:
+            id: set_validated_alarm_time
+            alarm_time_hh_mm: !lambda return id(saved_alarm_time);
         - lambda: |-
             auto call = id(alarm_action).make_call();
             call.set_option(id(saved_alarm_action));
@@ -174,6 +175,9 @@ logger:
 
 api:
   id: api_id
+  # Keep the device running when Home Assistant is deliberately offline. Wi-Fi
+  # retains its own reboot timeout above for recovery from network failures.
+  reboot_timeout: 0s
   # No encryption: this is a LAN-only device on a trusted network, same as the
   # sibling Guition project. To lock it down, add:
   #   encryption:
@@ -190,13 +194,9 @@ api:
       variables:
         alarm_time_hh_mm: string
       then:
-        - lambda: |-
-            if (alarm_time_hh_mm.length() == 5 &&
-              isdigit(alarm_time_hh_mm[0]) && isdigit(alarm_time_hh_mm[1]) &&
-              isdigit(alarm_time_hh_mm[3]) && isdigit(alarm_time_hh_mm[4])) {
-                id(alarm_time).publish_state(alarm_time_hh_mm);
-                id(saved_alarm_time) = alarm_time_hh_mm;
-              }
+        - script.execute:
+            id: set_validated_alarm_time
+            alarm_time_hh_mm: !lambda return alarm_time_hh_mm;
     - action: set_time_zone
       variables:
         posix_time_zone: string
@@ -809,6 +809,32 @@ globals:
     restore_value: no
 
 script:
+  # Single entry point for alarm-time state, including restored flash values.
+  - id: set_validated_alarm_time
+    parameters:
+      alarm_time_hh_mm: string
+    then:
+      - lambda: |-
+          const bool format_valid =
+            alarm_time_hh_mm.length() == 5 && alarm_time_hh_mm[2] == ':' &&
+            alarm_time_hh_mm[0] >= '0' && alarm_time_hh_mm[0] <= '9' &&
+            alarm_time_hh_mm[1] >= '0' && alarm_time_hh_mm[1] <= '9' &&
+            alarm_time_hh_mm[3] >= '0' && alarm_time_hh_mm[3] <= '9' &&
+            alarm_time_hh_mm[4] >= '0' && alarm_time_hh_mm[4] <= '9';
+          const int hour = format_valid
+            ? (alarm_time_hh_mm[0] - '0') * 10 + (alarm_time_hh_mm[1] - '0')
+            : -1;
+          const int minute = format_valid
+            ? (alarm_time_hh_mm[3] - '0') * 10 + (alarm_time_hh_mm[4] - '0')
+            : -1;
+
+          if (format_valid && hour <= 23 && minute <= 59) {
+            id(alarm_time).publish_state(alarm_time_hh_mm);
+            id(saved_alarm_time) = alarm_time_hh_mm;
+          } else {
+            ESP_LOGW("alarm", "Rejected invalid alarm time: %s", alarm_time_hh_mm.c_str());
+          }
+
   - id: apply_wake_word_sensitivity
     mode: restart
     then:
@@ -1054,27 +1080,21 @@ script:
       - lambda: |-
           id(publish_current_time).execute();
           if (id(alarm_on).state && id(alarm_time).has_state()) {
-            auto set_alarm_time = id(alarm_time).state;
-            if (set_alarm_time.length() == 5 &&
-                isdigit(set_alarm_time[0]) && isdigit(set_alarm_time[1]) &&
-                isdigit(set_alarm_time[3]) && isdigit(set_alarm_time[4])) {
-              auto alarm_hour = std::stoi(set_alarm_time.substr(0, 2));
-              auto alarm_minute = std::stoi(set_alarm_time.substr(3, 2));
+            const auto &set_alarm_time = id(alarm_time).state;
+            const int alarm_hour = (set_alarm_time[0] - '0') * 10 + (set_alarm_time[1] - '0');
+            const int alarm_minute = (set_alarm_time[3] - '0') * 10 + (set_alarm_time[4] - '0');
 
-              auto time_now = id(rtc).now();
-              if (time_now.hour == alarm_hour && time_now.minute == alarm_minute) {
-                std::string action = id(alarm_action).current_option();
-                if (action == "Play sound") {
-                  id(timer_ringing).turn_on();
-                } else if (action == "Send event") {
-                  id(send_alarm_event).execute();
-                } else if (action == "Sound and event") {
-                  id(timer_ringing).turn_on();
-                  id(send_alarm_event).execute();
-                }
+            auto time_now = id(rtc).now();
+            if (time_now.hour == alarm_hour && time_now.minute == alarm_minute) {
+              std::string action = id(alarm_action).current_option();
+              if (action == "Play sound") {
+                id(timer_ringing).turn_on();
+              } else if (action == "Send event") {
+                id(send_alarm_event).execute();
+              } else if (action == "Sound and event") {
+                id(timer_ringing).turn_on();
+                id(send_alarm_event).execute();
               }
-            } else {
-              ESP_LOGW("alarm", "Incorrect alarm time setting");
             }
           }
 
