@@ -45,9 +45,9 @@ substitutions:
   # (Audio_ES8311.cpp drives EXIO8; Button_Driver.cpp reads EXIO9/10/11), which
   # is why the "schematic says the keys are on 12" folklore is ignored here.
   amp_ctrl: '8'             # PA_EN / amplifier enable - ACTIVE HIGH
-  key1_exio: '9'            # volume down  (active low, 10k hardware pull-up)
+  key1_exio: '9'            # volume up  (active low, 10k hardware pull-up)
   key2_exio: '10'           # play/pause
-  key3_exio: '11'           # volume up
+  key3_exio: '11'           # volume down
 
   # ---------------------------------------------------------------------------
   # Home Assistant / network
@@ -1460,16 +1460,20 @@ button:
 
 binary_sensor:
   - platform: gpio
-    name: "Key1"
+    id: volume_up_button
+    name: "Volume up button"
+    internal: true
     pin:
       tca9555: ioexp
       number: ${key1_exio}
       inverted: true
     on_press:
-      - media_player.volume_down: external_media_player
+      - media_player.volume_up: external_media_player
 
   - platform: gpio
-    name: "Key2"
+    id: media_play_pause_button
+    name: "Media play-pause button"
+    internal: true
     pin:
       tca9555: ioexp
       number: ${key2_exio}
@@ -1478,10 +1482,12 @@ binary_sensor:
       - media_player.toggle: external_media_player
 
   - platform: gpio
-    name: "Key3"
+    id: volume_down_button
+    name: "Volume down button"
+    internal: true
     pin:
       tca9555: ioexp
       number: ${key3_exio}
       inverted: true
     on_press:
-      - media_player.volume_up: external_media_player
+      - media_player.volume_down: external_media_player
