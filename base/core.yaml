@@ -121,19 +121,6 @@ esphome:
               - microphone.mute: i2s_mics
             else:
               - microphone.unmute: i2s_mics
-        # Diagnostics: an explicit OFF switch that silences the mic completely.
-        # ON = microphone disabled. (This used to be inverted, so the mic was
-        # stopped on every boot with the switch in its default OFF position.)
-        - if:
-            condition:
-              switch.is_on: diag_disable_mic
-            then:
-              - logger.log: "Mic DISABLED for diagnostics"
-              - micro_wake_word.stop:
-              - voice_assistant.stop:
-              - microphone.stop_capture: i2s_mics
-            else:
-              - logger.log: "Mic enabled"
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -180,7 +167,10 @@ wifi:
     - script.execute: control_leds
 
 logger:
+  # Keep DEBUG compiled in for the runtime Logger Level selector, but avoid its
+  # extra noise and formatting work during normal operation.
   level: DEBUG
+  initial_level: INFO
 
 api:
   id: api_id
@@ -517,13 +507,7 @@ voice_assistant:
   volume_multiplier: 1
   on_client_connected:
     - lambda: id(init_in_progress) = false;
-    # Respect the diagnostics switch - it used to be overridden here on every
-    # HA (re)connect.
-    - if:
-        condition:
-          switch.is_off: diag_disable_mic
-        then:
-          - micro_wake_word.start:
+    - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
     - script.execute: control_leds
     # One-shot "ready" chime. It MUST run after micro_wake_word.start above: the
@@ -534,7 +518,6 @@ voice_assistant:
         condition:
           - lambda: 'return !id(boot_chime_done);'
           - switch.is_on: boot_sound
-          - switch.is_off: diag_disable_mic
         then:
           - lambda: id(boot_chime_done) = true;
           - delay: 1s            # let the mic-master clock settle
@@ -1249,6 +1232,8 @@ switch:
       id: aec_enabled
       name: "Echo cancellation"
       restore_mode: RESTORE_DEFAULT_ON
+      entity_category: config
+      disabled_by_default: true
 
   # Complete processor bypass for diagnostic A/B recordings. ON is the normal
   # path through AEC/BSS/AGC; OFF publishes the converted raw microphones. This
@@ -1262,40 +1247,9 @@ switch:
       entity_category: diagnostic
       disabled_by_default: true
 
-  - platform: template
-    id: diag_disable_mic
-    name: "Diag: disable microphone"
-    icon: mdi:microphone-settings
-    internal: true                      # diagnostic-only, not shown in HA
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF   # OFF = mic works as usual
-    # These triggers also fire during setup() when the state is restored from
-    # flash - at setup_priority HARDWARE-2, i.e. before the mic and mWW exist.
-    # on_boot (priority -100) applies the restored state once everything is up,
-    # so here we only handle a live toggle.
-    on_turn_on:
-      - if:
-          condition:
-            lambda: return !id(init_in_progress);
-          then:
-            - micro_wake_word.stop:
-            - voice_assistant.stop:
-            - microphone.stop_capture: i2s_mics
-    on_turn_off:
-      - if:
-          condition:
-            lambda: return !id(init_in_progress);
-          then:
-            # Start capture even while muted: microphone.mute supplies zeros and
-            # keeps the shared I2S clock alive. A later unmute then works without
-            # needing to restart the wake-word pipeline.
-            - micro_wake_word.start:
-
   - platform: gpio
     id: amp_enable
-    name: Amplifier
-    icon: mdi:speaker
-    entity_category: config
+    internal: true
     pin:
       tca9555: ioexp
       number: ${amp_ctrl}
