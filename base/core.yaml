@@ -374,7 +374,7 @@ media_player:
     id: external_media_player
     name: None
     internal: False
-    volume_increment: 0.01
+    volume_increment: 0.05
     volume_min: ${volume_min}
     volume_max: ${volume_max}
     announcement_pipeline:
@@ -407,18 +407,32 @@ media_player:
                 decibel_reduction: 0
                 duration: 1.0s
     on_mute:
-      - delay: 100ms            # debounce
-      - script.execute: control_leds_volume_changed
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - delay: 100ms      # debounce
+            - script.execute:
+                id: control_leds_volume_changed
+                volume_level: 0.0
     on_unmute:
-      - delay: 100ms
-      - script.execute: control_leds_volume_changed
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - delay: 100ms
+            - script.execute:
+                id: control_leds_volume_changed
+                volume_level: !lambda 'return id(external_media_player).volume;'
     on_volume:
       if:
         condition:
           - lambda: return !id(init_in_progress);
         then:
           - delay: 100ms
-          - script.execute: control_leds_volume_changed
+          - script.execute:
+              id: control_leds_volume_changed
+              volume_level: !lambda 'return x;'
     files:
       - id: timer_finished_sound
         file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/timer_finished.flac
@@ -756,6 +770,24 @@ light:
               uint8_t g = (uint8_t)(r * (0.20f + (esp_random() % 45) / 255.0f));
               it[i] = Color(r, g, 0);
             }
+      # Temporary volume meter. A fractional leading LED makes the player's
+      # 1% volume steps visible despite the ring having only seven pixels.
+      - addressable_lambda:
+          name: "Volume Level"
+          update_interval: 50ms
+          lambda: |-
+            const float level = std::max(0.0f, std::min(1.0f, id(volume_display_level)));
+            const int n = it.size();
+            const float filled = level * n;
+            for (int i = 0; i < n; i++) {
+              const float coverage = std::max(0.0f, std::min(1.0f, filled - i));
+              const float intensity = 0.025f + 0.975f * coverage;
+              // Start beside one edge of the USB-C connector and finish at
+              // the LED beside its other edge.
+              it[(i + 4) % n] = Color(
+                0, (uint8_t)(180 * intensity), (uint8_t)(255 * intensity)
+              );
+            }
 
 globals:
   - id: mic_is_muted
@@ -776,6 +808,10 @@ globals:
     type: float
     restore_value: no
     initial_value: '1.0'
+  - id: volume_display_level
+    type: float
+    restore_value: no
+    initial_value: '0.0'
   - id: init_in_progress
     type: bool
     restore_value: no
@@ -981,17 +1017,19 @@ script:
 
           set("off", 0, 0, 0);                       // idle
 
-  # A short green pulse on a volume change, then back to the state machine.
+  # Show the selected volume as a cyan progress bar, then return to the current
+  # assistant/timer/connectivity state. Restarting extends the display while
+  # consecutive volume commands arrive.
   - id: control_leds_volume_changed
     mode: restart
+    parameters:
+      volume_level: float
     then:
+      - lambda: 'id(volume_display_level) = volume_level;'
       - light.turn_on:
           id: status_ring
           brightness: !lambda 'return id(led_ring_brightness).state;'
-          red: 0.0
-          green: 1.0
-          blue: 0.0
-          effect: "Pulse Fast"
+          effect: "Volume Level"
       - delay: 1.2s
       - script.execute: control_leds
 
