@@ -74,7 +74,7 @@ Verified TDM slots are **0 = right mic, 1 = analog playback reference,
 
 ```yaml
 external_components:
-  - source: github://n-IA-hane/esphome-audio-stack@v2026.7.0
+  - source: github://n-IA-hane/esphome-audio-stack@v2026.9.2
     components: [esp_audio_stack, esp_afe]
 
 esp_audio_stack:
@@ -107,7 +107,8 @@ esp_afe:
   se_enabled: true
 ```
 
-Keep the shared bus at 16 kHz with `esp_audio_stack` v2026.7.0. The required
+Keep the shared bus at 16 kHz with the pinned `esp_audio_stack` v2026.9.2. The
+16 kHz choice was established during v2026.7.0 hardware testing: the required
 48 kHz, four-slot, 32-bit geometry computes as 20 x 192-frame descriptors,
 exceeding the component's 16-descriptor safety ceiling and the measured
 DMA-capable memory budget. Both 48 kHz/16-bit experiments were also rejected
