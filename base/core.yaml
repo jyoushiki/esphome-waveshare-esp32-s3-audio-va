@@ -218,7 +218,9 @@ i2c:
   - id: internal_i2c
     sda: ${i2c_sda}
     scl: ${i2c_scl}
-    scan: true
+    # All production devices have fixed addresses; scanning is only useful
+    # during hardware diagnosis and adds avoidable traffic at startup.
+    scan: false
     frequency: 100kHz
 
 # I/O expander: amplifier enable + the three front buttons.
