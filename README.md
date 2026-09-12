@@ -63,23 +63,27 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 - **Tunable live from HA**: microphone mute, post-AFE mic gain, LED brightness
   and wake-word sensitivity are all entities, so there's no reflashing to tune it.
 
-## Audio-quality tradeoff
+## Audio rates and resource tradeoff
 
-This release deliberately runs the shared physical codec bus at **16 kHz**,
-including the speaker output. Home Assistant and Music Assistant may still send
-48 kHz audio, but ESPHome resamples it to 16 kHz before it reaches the ES8311.
-That is well suited to wake words, Assist prompts and speech, but music is
-limited to voice-grade bandwidth and will not have the fidelity of 48 kHz
-playback.
+The shared physical codec bus and speaker output run at **48 kHz** with the
+32-bit four-slot framing required by the ES7210/ES8311 hardware. The stack
+converts the selected microphone/reference inputs to **16 kHz** before
+Espressif's AFE, Micro Wake Word and Home Assistant. Music and TTS therefore
+retain 48 kHz playback while the speech pipeline stays at its native rate.
 
-The trade is intentional: the 16 kHz bus makes both physical microphones and
-the board's sample-aligned analog playback reference fit the ESP32-S3 DMA budget,
-allowing Espressif's full-duplex AFE to perform dual-mic speech enhancement and
-local AEC. The required four-slot, 32-bit codec layout does not fit this build's
-DMA budget at 48 kHz, while the reduced-width 48 kHz layouts tested on the board
-broke playback or the complete Assist session. See
-[Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks) for the measured
-DMA geometry and validation results.
+This is possible because the forked audio stack preserves all four physical
+TDM slots for clock timing but transfers only the slots each DMA direction
+uses: RX carries the two microphones plus analog playback reference, and TX
+carries the single speaker slot. This profile explicitly disables the optional
+processor DMA margin; twelve 256-frame descriptors then hold exactly one 64 ms
+AFE quantum without exhausting the ESP32-S3's internal DMA-capable RAM.
+Large ordinary allocations prefer the board's PSRAM so Voice Assistant does
+not compete with I2S DMA.
+
+The tradeoff is additional rate-conversion work and reliance on the fork's
+`feature/tdm-sparse-dma` branch until the change is available in an upstream
+release. See [Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks)
+for the measured DMA geometry and validation results.
 
 ## Optional raw TDM diagnostics
 
@@ -104,7 +108,7 @@ work.
 
 ## Quick start
 
-> Requires **ESPHome 2026.6.5+**, ESP-IDF, and the board's octal PSRAM.
+> Requires **ESPHome 2026.8.0+**, ESP-IDF, and the board's octal PSRAM.
 
 1. In Home Assistant's ESPHome Device Builder directory, provide a
    `secrets.yaml` containing `wifi_ssid` and `wifi_password`. You can copy
@@ -149,15 +153,13 @@ pins**, and only one device can drive those clocks. Native ESPHome's independent
 microphone and speaker components cannot coordinate that peripheral while also
 exposing the ES7210 TDM channels needed for echo cancellation.
 
-The pinned `esp_audio_stack` external component owns RX and TX together on a
-native 16 kHz voice bus. It extracts TDM slots 0 and 2 as the two physical
-microphones and slot 1 as the analog playback reference. Espressif's
-full-duplex dual-mic AFE performs AEC, noise suppression and Speech
-Enhancement/BSS, then publishes processed 16 kHz mono audio to Micro Wake Word
-and Home Assistant. A 48 kHz bus was tested with two reduced-width layouts, but
-neither preserved working playback and a complete Assist session; the required
-four-slot 32-bit layout also exceeds this build's DMA budget at 48 kHz. The
-annotated configuration is in `base/core.yaml`.
+The forked `esp_audio_stack` owns RX and TX together on a 48 kHz, four-slot,
+32-bit physical bus. It transfers TDM slots 0 and 2 as the two microphones and
+slot 1 as the analog playback reference through RX DMA, while TX DMA carries
+only speaker slot 0. Espressif's dual-mic AFE receives a synchronized 16 kHz
+conversion, performs AEC, noise suppression and Speech Enhancement/BSS, then
+publishes processed mono audio to Micro Wake Word and Home Assistant. Playback
+remains at 48 kHz. The annotated configuration is in `base/core.yaml`.
 
 ## Repository layout
 

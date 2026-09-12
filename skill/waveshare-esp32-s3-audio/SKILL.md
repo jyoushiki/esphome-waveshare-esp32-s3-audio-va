@@ -74,13 +74,14 @@ Verified TDM slots are **0 = right mic, 1 = analog playback reference,
 
 ```yaml
 external_components:
-  - source: github://n-IA-hane/esphome-audio-stack@v2026.9.2
+  - source: github://jyoushiki/esphome-audio-stack@feature/tdm-sparse-dma
+    refresh: 0s
     components: [esp_audio_stack, esp_afe]
 
 esp_audio_stack:
   id: audio_stack
   processor_id: afe_processor
-  sample_rate: 16000
+  sample_rate: 48000
   output_sample_rate: 16000
   bits_per_sample: 32
   slot_bit_width: 32
@@ -93,29 +94,44 @@ esp_audio_stack:
   tdm_total_slots: 4
   tdm_mic_slots: [0, 2]
   tdm_ref_slot: 1
+  tdm_tx_slot: 0
+  dma_desc_num: 12
+  processor_dma_margin: false
+  buffers_in_psram: true
+  audio_task_stack_in_psram: true
   codec:
     input: { type: es7210, address: 0x40, mic_selected: 0x0F, gain_db: 24 }
     output: { type: es8311, address: 0x18, use_mclk: true, no_dac_ref: true }
 
 esp_afe:
   id: afe_processor
-  type: fd
-  mode: high_perf
+  type: sr
+  mode: low_cost
   mic_num: 2
   input_format: mmr
   aec_enabled: true
+  ns_enabled: true
+  agc_enabled: true
   se_enabled: true
 ```
 
-Keep the shared bus at 16 kHz with the pinned `esp_audio_stack` v2026.9.2. The
-16 kHz choice was established during v2026.7.0 hardware testing: the required
-48 kHz, four-slot, 32-bit geometry computes as 20 x 192-frame descriptors,
-exceeding the component's 16-descriptor safety ceiling and the measured
-DMA-capable memory budget. Both 48 kHz/16-bit experiments were also rejected
-on hardware: 16-bit slots broke playback and wake detection; 32-bit slots with
-16-bit words restored wake detection but left playback and the Assist session
-broken. The verified 16 kHz geometry uses 10 x 128-frame descriptors. This
-trades music bandwidth for a stable native-rate voice path.
+The shared physical bus is verified at 48 kHz with 32-bit words and slots. The
+forked stack preserves all four physical slots for BCLK/WS timing but transfers
+only slots 0/1/2 through RX DMA and slot 0 through TX DMA. It converts the
+synchronized microphone/reference inputs to the 16 kHz AFE rate while playback
+remains 48 kHz. Set `dma_desc_num: 12`: this holds exactly one 3072-frame AFE
+bus quantum when paired with `processor_dma_margin: false`, and leaves about
+12.7 KiB DMA-capable memory after I2S enable. The automatic 25% margin selects
+15 descriptors, leaves only about 871 bytes and did not recognize the wake word
+in testing.
+
+The earlier all-slot 48 kHz geometry and reduced-width experiments remain
+invalid: moving four 32-bit slots in both directions exceeds the S3 DMA budget,
+16-bit slots broke playback and wake detection, and 16-bit words in 32-bit
+slots left playback/Assist broken. Sparse direction-specific DMA is what makes
+the verified 48 kHz configuration possible. Ordinary allocations over 1 KiB
+must prefer PSRAM and internal RAM must remain reserved for DMA; otherwise
+Voice Assistant can abort in `MicrophoneSource` after detecting the wake word.
 
 ## Gotchas that cost real time
 

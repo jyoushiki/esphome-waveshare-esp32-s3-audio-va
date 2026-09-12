@@ -210,15 +210,18 @@ This firmware now uses **one `esp_audio_stack` owner** in ESP-master TDM mode:
 
 - One I2S peripheral owns RX and TX together, eliminating the former
   `Parent bus is busy` problem and the two-port shared-clock workaround.
-- The physical voice bus runs natively at 16 kHz with 32-bit slots. ES7210
-  places its four 16-bit ADC channels into that frame; the stack extracts both
-  microphones and the playback reference without sample-rate conversion.
-- The 16 kHz rate is an intentional compatibility setting for
-  `esp_audio_stack` v2026.7.0. With the required 32-bit words and four slots,
-  a 48 kHz, 1024-sample AFE frame computes as 20 descriptors of 192 frames.
-  That exceeds the component's 16-descriptor safety ceiling and would require
-  about 120 KiB of DMA buffers across RX and TX. The board had only about
-  93 KiB of DMA-capable memory free before I2S setup in this build.
+- The physical bus runs at 48 kHz with four 32-bit slots. ES7210 places its
+  ADC channels into that frame, while the speech-facing output is converted to
+  16 kHz for Espressif AFE, Micro Wake Word and Voice Assistant.
+- Moving all four physical slots through both DMA directions is not viable on
+  this ESP32-S3 build. A 48 kHz, 1024-sample AFE quantum needs 20 descriptors
+  of 192 frames with the normal 25% margin, exceeding the component's
+  16-descriptor limit and requiring roughly 120 KiB across RX and TX.
+- The forked stack instead keeps `tdm_total_slots: 4` for physical BCLK/WS
+  timing while using independent sparse masks. RX DMA transfers slots 0, 1 and
+  2 (two microphones plus analog playback reference); TX DMA transfers only
+  slot 0 (speaker). ESP-IDF packs those active slots in ascending order and the
+  stack maps them back to their configured physical identities.
 - Reducing only the stored/wire word width was tested, not merely inferred.
   At 48 kHz with 16-bit words and 16-bit slots, the stack started with
   `10 x 384` DMA geometry, but neither the startup chime nor wake-word path
@@ -226,19 +229,29 @@ This firmware now uses **one `esp_audio_stack` owner** in ESP-master TDM mode:
   playback remained silent and the Assist capture did not complete normally.
   These results show that a successful boot and active raw mic slots are not
   sufficient; the codecs require the known-good 32-bit word/slot framing here.
-- Native 16 kHz with 32-bit words and slots uses `10 x 128` DMA geometry and
-  has been verified end-to-end on the board.
-- Speaker sources are resampled to the same 16 kHz shared bus. This is ideal
-  for Assist speech, but limits music playback to voice-grade bandwidth.
+- At 48 kHz, sparse 32-bit DMA uses 256-frame descriptors. The automatic
+  25% margin selected 15 descriptors and left only 871 bytes of DMA-capable
+  memory after I2S enable; wake-word detection did not work in that run.
+  Setting `dma_desc_num: 12` with `processor_dma_margin: false` aligns the queue
+  with exactly one 3072-frame (64 ms) AFE bus quantum, leaving about 12.7 KiB
+  DMA-capable memory after I2S enable. Wake word, Assist capture and correctly
+  pitched 48 kHz playback were then verified end to end.
+- Ordinary allocations larger than 1 KiB prefer PSRAM, with 32 KiB of internal
+  RAM reserved for DMA and task stacks. Without this policy, entering Assist
+  after wake detection exhausted internal memory in `MicrophoneSource` and
+  rebooted the board even though I2S itself had started successfully.
+- Speaker sources are resampled to 48 kHz. Only the synchronized microphone and
+  reference channels are reduced to the AFE's 16 kHz processing rate.
 - ES7210 and ES8311 are configured through `esp_codec_dev`, so the stock
   `audio_adc` and `audio_dac` components must not also be declared.
 
 Hardware validation measured slots 0 and 2 at about -61 dBFS in a quiet room,
 with slot 3 near -91 dBFS. During startup-sound playback, slot 1 rose from
 about -87 dBFS to -38 dBFS while slot 3 stayed at the noise floor, confirming
-that slot 1 is the electrical playback reference. After restoring the verified
-16 kHz framing, a live run detected `Hey Jarvis`, ended capture through VAD,
-recognized the spoken command, completed the intent, and played the response.
+that slot 1 is the electrical playback reference. With the sparse 48 kHz DMA
+path, a live run detected the wake word, ended capture through VAD, recognized
+the spoken command, completed the intent, and played the response at the
+correct speed and pitch.
 
 See `base/core.yaml` for the pinned component version and annotated config.
 

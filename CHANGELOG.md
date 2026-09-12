@@ -1,5 +1,32 @@
 # Changelog
 
+## Development
+
+### Changed
+
+- The physical TDM bus and speaker output now run at 48 kHz while the
+  synchronized dual-microphone/reference input is converted to 16 kHz for AFE,
+  wake-word and Assist processing.
+- The audio stack comes from the fork's `feature/tdm-sparse-dma` branch. RX DMA
+  carries only slots 0, 1 and 2; TX DMA carries only speaker slot 0, while the
+  physical clock retains all four 32-bit slots.
+- `dma_desc_num: 12` aligns DMA with one complete 64 ms AFE quantum and retains
+  usable internal memory. The automatic 15-descriptor geometry exhausted nearly
+  all DMA-capable RAM and did not recognize the wake word in hardware testing.
+- Large ordinary allocations prefer PSRAM, reserving internal memory for DMA
+  and task stacks. This prevents Voice Assistant microphone-buffer allocation
+  from rebooting the board after wake detection.
+
+### Hardware validation
+
+- Startup and wake chimes play at the correct speed and pitch.
+- Wake-word detection, VAD-completed capture, Assist intent processing and TTS
+  playback complete successfully with the 48 kHz physical bus.
+- The validated 12-descriptor build leaves approximately 12.7 KiB of
+  DMA-capable memory after I2S enable.
+
+---
+
 ## [1.1.0] - 2026-08-19
 
 Hardware-validated dual-microphone AFE/AEC release for this fork. Tagged

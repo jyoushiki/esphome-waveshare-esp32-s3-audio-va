@@ -142,14 +142,24 @@ esp32:
       CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC: "y"
       CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: "y"
 
+      # Let ordinary allocations larger than 1 KiB (notably Voice Assistant
+      # microphone vectors) prefer PSRAM, while retaining a protected internal
+      # pool for DMA and task stacks.
+      CONFIG_SPIRAM_USE_CAPS_ALLOC: "n"
+      CONFIG_SPIRAM_USE_MALLOC: "y"
+      CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL: "1024"
+      CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL: "32768"
+
 psram:
   mode: octal
   speed: 80MHz
+  ignore_not_found: false
 
-# Full-duplex TDM ownership plus Espressif's software Audio Front End. Pin the
-# stable release that includes dual-mic VAD control and optional AGC support.
+# Full-duplex TDM ownership plus Espressif's software Audio Front End. This
+# branch builds on v2026.9.2 and adds direction-specific sparse TDM DMA.
 external_components:
-  - source: github://n-IA-hane/esphome-audio-stack@v2026.9.2
+  - source: github://jyoushiki/esphome-audio-stack@feature/tdm-sparse-dma
+    refresh: 0s
     components: [esp_audio_stack, esp_afe]
 
 wifi:
@@ -242,13 +252,13 @@ time:
 # emits four samples in 32-bit physical TDM slots. On this board
 # revision, slots 0 and 2 are the physical microphones, slot 1 is the attenuated
 # ES8311 playback reference, and slot 3 is unused. The stack extracts those
-# channels and feeds MMR audio to the AFE. This board requires 32-bit codec
-# words and slots for working full-duplex capture/playback. A 16 kHz bus keeps
-# the complete AFE frame and DMA headroom within the ESP32-S3's internal RAM.
+# channels and feeds MMR audio to the AFE. The required 32-bit four-slot
+# physical frame runs at 48 kHz, while DMA transfers only the three used RX
+# slots and one TX slot.
 esp_audio_stack:
   id: audio_stack
   processor_id: afe_processor
-  sample_rate: 16000
+  sample_rate: 48000
   output_sample_rate: 16000
   bits_per_sample: 32
   slot_bit_width: 32
@@ -286,11 +296,15 @@ esp_audio_stack:
 
   # Keep the realtime path out of scarce internal RAM where the component
   # supports it. DMA and ESP-SR still reserve the internal memory they need.
+  # Twelve 256-frame descriptors hold exactly one 64 ms AFE quantum at the
+  # 48 kHz bus rate, while retaining internal DMA-capable RAM on the S3.
+  dma_desc_num: 12
+  processor_dma_margin: false
   audio_task_stack_in_psram: true
   buffers_in_psram: true
   audio_effects:
-    rate_cvt_complexity: 3
-    rate_cvt_perf_type: speed
+    rate_cvt_complexity: 1
+    rate_cvt_perf_type: memory
   master_volume_min_db: -30.0
 
   # Gate the NS4150B from actual speaker ownership, including sounds which do
@@ -305,12 +319,8 @@ esp_audio_stack:
 # physical microphones into the processed mono stream exposed below.
 esp_afe:
   id: afe_processor
-  # Full-duplex/high-performance is the appropriate AFE profile for
-  # simultaneous playback and capture, and it honors the aggressive NLP mode.
-  # The synchronized mic/reference channels already match ESP-SR's native
-  # 16 kHz, 1024-sample processing frame.
-  type: fd
-  mode: high_perf
+  type: sr
+  mode: low_cost
   mic_num: 2
   input_format: mmr
   aec_enabled: true
@@ -341,7 +351,9 @@ speaker:
   - platform: esp_audio_stack
     id: i2s_audio_speaker
     esp_audio_stack_id: audio_stack
-    sample_rate: 16000
+    # Must match the physical I2S bus rate. The microphone/AFE output remains
+    # 16 kHz via esp_audio_stack.output_sample_rate above.
+    sample_rate: 48000
     bits_per_sample: 16
     timeout: 1s
     buffer_duration: 128ms
