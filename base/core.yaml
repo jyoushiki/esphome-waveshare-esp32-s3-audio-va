@@ -487,7 +487,20 @@ micro_wake_word:
                                       id: play_sound
                                       priority: true
                                       sound_file: !lambda return id(wake_word_triggered_sound);
-                                  - delay: 300ms
+                                  # play_file() is queued, so anchor the delay to
+                                  # actual playback rather than the queue call.
+                                  # Start listening during the quiet tail of the
+                                  # 947 ms file: its audible transient is mostly
+                                  # over by 300 ms and AEC removes the remainder.
+                                  - wait_until:
+                                      condition:
+                                        media_player.is_announcing:
+                                      timeout: 500ms
+                                  - if:
+                                      condition:
+                                        media_player.is_announcing:
+                                      then:
+                                        - delay: 300ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
