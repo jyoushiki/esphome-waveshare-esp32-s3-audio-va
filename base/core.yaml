@@ -661,10 +661,15 @@ voice_assistant:
     - script.execute: control_leds
   on_timer_tick:
     - lambda: |
-        id(fetch_first_active_timer).execute();
-        int seconds_left = id(first_active_timer).seconds_left;
-        if (seconds_left % 5 == 0) {
-          id(next_timer).publish_state(seconds_left);
+        const voice_assistant::Timer *closest_timer = nullptr;
+        for (const auto &timer : timers) {
+          if (timer.is_active &&
+              (closest_timer == nullptr || timer.seconds_left < closest_timer->seconds_left)) {
+            closest_timer = &timer;
+          }
+        }
+        if (closest_timer != nullptr && closest_timer->seconds_left % 5 == 0) {
+          id(next_timer).publish_state(closest_timer->seconds_left);
         }
         // The ring is repainted centrally by control_leds().
 
@@ -843,9 +848,6 @@ globals:
     type: std::string
     restore_value: yes
     initial_value: '"Play sound"'
-  - id: first_active_timer
-    type: voice_assistant::Timer
-    restore_value: no
   - id: is_timer_active
     type: bool
     restore_value: no
@@ -1084,22 +1086,6 @@ script:
             id(external_media_player)->play_file(sound_file, true, false);
           }
 
-  - id: fetch_first_active_timer
-    mode: single
-    then:
-      - lambda: |
-          const auto &timers = id(va).get_timers();
-          const voice_assistant::Timer *next_timer = nullptr;
-          for (const auto &timer : timers) {
-            if (timer.is_active &&
-                (next_timer == nullptr || timer.seconds_left < next_timer->seconds_left)) {
-              next_timer = &timer;
-            }
-          }
-          if (next_timer != nullptr) {
-            id(first_active_timer) = *next_timer;
-          }
-
   # Keep the public timer sensors and the cached active-state flag consistent
   # for every timer lifecycle event. In particular, timer updates can also
   # leave no active timers and must clear the formerly published value.
@@ -1118,7 +1104,6 @@ script:
 
           id(is_timer_active) = closest_timer != nullptr;
           if (closest_timer != nullptr) {
-            id(first_active_timer) = *closest_timer;
             id(next_timer).publish_state(closest_timer->seconds_left);
             id(next_timer_name).publish_state(closest_timer->name);
           } else {
