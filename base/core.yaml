@@ -384,15 +384,20 @@ speaker:
   - platform: resampler
     id: announcement_resampling_speaker
     output_speaker: announcement_mixing_input
+    task_stack_in_psram: true
   - platform: resampler
     id: media_resampling_speaker
     output_speaker: media_mixing_input
+    task_stack_in_psram: true
 
 media_player:
   - platform: speaker
     id: external_media_player
     name: None
     internal: False
+    # Keep decoder stacks in PSRAM. ESPHome deliberately leaves the HTTP
+    # reader stack in internal RAM, where esp_http_client requires it.
+    task_stack_in_psram: true
     volume_increment: 0.05
     volume_min: ${volume_min}
     volume_max: ${volume_max}
@@ -465,6 +470,7 @@ media_player:
 micro_wake_word:
   id: mww
   microphone: i2s_mics
+  task_stack_in_psram: true
   stop_after_detection: false
   models:
     - model: https://github.com/esphome/micro-wake-word-models/raw/${mww_models_ref}/models/v2/okay_nabu.json
