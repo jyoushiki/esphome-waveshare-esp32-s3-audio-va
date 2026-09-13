@@ -32,7 +32,7 @@ substitutions:
 
   # Boot chime played once on connect to Home Assistant. A sound ships with the
   # firmware; uncomment to use your own (any URL or local MP3/FLAC/WAV). The
-  # board plays back at 16 kHz mono, so a small 16 kHz mono file is plenty.
+  # speaker path runs at 48 kHz and resamples other source rates as needed.
   # boot_sound_file: https://example.com/my-chime.mp3
 
   # Mic gain, LED brightness, wake-word sensitivity and the alarm are all
