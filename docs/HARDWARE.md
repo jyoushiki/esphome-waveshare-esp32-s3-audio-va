@@ -87,8 +87,8 @@ The validated physical bus format is:
 | Bus mode | TDM, ESP32 master, full duplex |
 | Sample rate | 48 kHz |
 | Frame | Four physical slots |
-| Slot width | 32 bits |
-| Sample word width | 32 bits |
+| Slot width | 16 bits |
+| Sample word width | 16 bits |
 | RX data pin | GPIO15 |
 | TX data pin | GPIO16 |
 
@@ -160,16 +160,17 @@ The validated DMA operating point is:
 
 | Parameter | Value |
 |---|---|
-| Descriptor count | 12 |
-| Frames per descriptor | 256 |
-| Queued bus frames | 3072 |
-| Queue duration at 48 kHz | 64 ms |
-| Automatic processor margin | Disabled |
+| Descriptor count | 8, selected automatically |
+| Frames per descriptor | 512, selected automatically |
+| Queued bus frames | 4096 |
+| Queue duration at 48 kHz | 85.3 ms |
+| Automatic processor margin | Enabled |
 
-The 3072-frame queue equals one 64 ms AFE input quantum at the 48 kHz bus rate.
-Increasing the descriptor margin exhausted the internal DMA reserve during
-testing and prevented reliable wake-word operation. The 32-bit slot/word format
-is also required by the validated codec configuration.
+The audio stack initially calculates six descriptors and raises the count to
+eight to retain its normal processor-frame margin. The 16-bit sparse RX/TX
+geometry leaves approximately 50 KiB of DMA-capable memory free after I2S is
+enabled on the validated build. Earlier 32-bit framing consumed twice as much
+DMA memory and made that margin impractical; it was not a codec requirement.
 
 ## Memory layout
 

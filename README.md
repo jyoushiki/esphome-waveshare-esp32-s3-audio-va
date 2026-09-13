@@ -38,7 +38,7 @@ other.
 | | This project | Michał's original project |
 |---|---|---|
 | Audio ownership | One external full-duplex audio stack owns RX and TX | Stock ESPHome `i2s_audio` components on two logical buses |
-| Physical playback | 48 kHz, four 32-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
+| Physical playback | 48 kHz, four 16-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
 | Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
 | Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
 | Dependencies | External `esphome-audio-stack`, currently including a pending sparse-DMA contribution | Pure stock ESPHome; no external audio component |
@@ -50,6 +50,37 @@ Choose this one if dual-mic processing, local echo cancellation and 48 kHz
 playback justify the additional dependency and complexity. Bugs and setup
 questions must be reported against the repository whose firmware is installed;
 the two audio architectures require different diagnosis.
+
+## Choosing between this project and `esphome-intercom`
+
+[`esphome-intercom`](https://github.com/n-IA-hane/esphome-intercom) also provides
+a maintained full-experience profile for this board. The projects share the
+same `esphome-audio-stack` foundation and many audio principles, but serve
+different purposes: this firmware is a focused Home Assistant voice satellite,
+whereas `esphome-intercom` is a broader voice and SIP/VoIP platform.
+
+| | This project | `esphome-intercom` full experience |
+|---|---|---|
+| Primary purpose | Dedicated Assist satellite and media player | Voice assistant plus a complete SIP/VoIP endpoint |
+| Physical buttons | Volume up, play/pause and volume down | Calling, contact selection, answering and declining |
+| Wake words | Four bundled alternatives with selectable sensitivity | A simpler default wake-word setup intended for its shared runtime |
+| LED experience | Selectable per-phase effects and a physical volume-level display | Call, assistant and media state coordinated by a generic runtime controller |
+| Voice tuning | Board-specific speech-recognition AFE, post-AFE AGC and calibrated mic/reference gain | Full-duplex profile tuned for simultaneous Voice Assistant, media and calls |
+| Extra infrastructure | No PBX, SIP account or custom VoIP integration required | Optional HA phone system, softphones, routing, phonebook, groups and trunks |
+| Configuration scope | One board and one focused interaction model | Reusable packages and profiles spanning several devices and use cases |
+
+Choose `esphome-intercom` when room-to-room calls, SIP equipment, a door station
+or Home Assistant phone routing are part of the goal; duplicating those features
+here is explicitly out of scope. Choose this project when the board should
+behave primarily as a compact Assist appliance with straightforward volume and
+media controls, multiple wake-word choices and a deliberately tailored LED
+experience.
+
+The underlying audio gap is now intentionally small: both designs can use the
+board at 48 kHz with its two microphones, synchronized playback reference and
+local AEC. This project should therefore justify its existence through focus,
+board-specific tuning and user experience rather than by duplicating the much
+larger communications platform.
 
 ## What it does
 
@@ -85,8 +116,8 @@ the two audio architectures require different diagnosis.
 
 ## Audio rates and resource tradeoff
 
-The shared physical codec bus and speaker output run at **48 kHz** with the
-32-bit four-slot framing required by the ES7210/ES8311 hardware. The stack
+The shared physical codec bus and speaker output run at **48 kHz** with four
+**16-bit TDM slots and 16-bit samples**. The stack
 converts the selected microphone/reference inputs to **16 kHz** before
 Espressif's AFE, Micro Wake Word and Home Assistant. Music and TTS therefore
 retain 48 kHz playback while the speech pipeline stays at its native rate.
@@ -94,9 +125,10 @@ retain 48 kHz playback while the speech pipeline stays at its native rate.
 This is possible because the forked audio stack preserves all four physical
 TDM slots for clock timing but transfers only the slots each DMA direction
 uses: RX carries the two microphones plus analog playback reference, and TX
-carries the single speaker slot. This profile explicitly disables the optional
-processor DMA margin; twelve 256-frame descriptors then hold exactly one 64 ms
-AFE quantum without exhausting the ESP32-S3's internal DMA-capable RAM.
+carries the single speaker slot. With the 16-bit framing, the stack can retain
+its normal processor margin and select the DMA geometry automatically. The
+validated build uses eight 512-frame descriptors without exhausting the
+ESP32-S3's internal DMA-capable RAM.
 Large ordinary allocations prefer the board's PSRAM so Voice Assistant does
 not compete with I2S DMA.
 
@@ -203,7 +235,7 @@ microphone and speaker components cannot coordinate that peripheral while also
 exposing the ES7210 TDM channels needed for echo cancellation.
 
 The forked `esp_audio_stack` owns RX and TX together on a 48 kHz, four-slot,
-32-bit physical bus. It transfers TDM slots 0 and 2 as the two microphones and
+16-bit physical bus. It transfers TDM slots 0 and 2 as the two microphones and
 slot 1 as the analog playback reference through RX DMA, while TX DMA carries
 only speaker slot 0. Espressif's dual-mic AFE receives a synchronized 16 kHz
 conversion, performs AEC and dual-microphone Speech Enhancement/BSS, then

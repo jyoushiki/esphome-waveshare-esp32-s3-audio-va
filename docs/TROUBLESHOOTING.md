@@ -116,7 +116,9 @@ startup, wake detection and the delayed reply in a bug report.
 
 Speed and pitch changing together indicate a sample-rate or physical bus-format
 mismatch, not an ordinary volume or codec-quality setting. The current firmware
-uses a 48 kHz, four-slot, 32-bit TDM bus and resamples speech sources as needed.
+uses a 48 kHz, four-slot, 16-bit TDM bus and resamples speech sources as needed.
+The hardware speaker must also declare 48 kHz; leaving it at 16 kHz makes
+playback run three times too fast and sound correspondingly high-pitched.
 
 With an unmodified published build, first clean the build directory and verify
 that the core and external audio components came from the intended revisions.

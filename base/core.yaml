@@ -254,10 +254,10 @@ time:
       - script.execute: publish_current_time
 
 # One owner is required for sample-aligned capture and playback. The ES7210
-# emits four samples in 32-bit physical TDM slots. On this board
+# emits four samples in 16-bit physical TDM slots. On this board
 # revision, slots 0 and 2 are the physical microphones, slot 1 is the attenuated
 # ES8311 playback reference, and slot 3 is unused. The stack extracts those
-# channels and feeds MMR audio to the AFE. The required 32-bit four-slot
+# channels and feeds MMR audio to the AFE. The four-slot
 # physical frame runs at 48 kHz, while DMA transfers only the three used RX
 # slots and one TX slot.
 esp_audio_stack:
@@ -265,8 +265,8 @@ esp_audio_stack:
   processor_id: afe_processor
   sample_rate: 48000
   output_sample_rate: 16000
-  bits_per_sample: 32
-  slot_bit_width: 32
+  bits_per_sample: 16
+  slot_bit_width: 16
 
   i2s_mclk_pin: ${i2s_mclk}
   i2s_bclk_pin: ${i2s_bclk}
@@ -302,10 +302,8 @@ esp_audio_stack:
 
   # Keep the realtime path out of scarce internal RAM where the component
   # supports it. DMA and ESP-SR still reserve the internal memory they need.
-  # Twelve 256-frame descriptors hold exactly one 64 ms AFE quantum at the
-  # 48 kHz bus rate, while retaining internal DMA-capable RAM on the S3.
-  dma_desc_num: 12
-  processor_dma_margin: false
+  # Let the stack size DMA from the 16-bit sparse RX/TX geometry and retain its
+  # normal processor margin; the selected values are verified in boot logs.
   audio_task_stack_in_psram: true
   buffers_in_psram: true
   audio_effects:

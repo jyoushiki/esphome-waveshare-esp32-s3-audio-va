@@ -32,11 +32,15 @@ an immutable revision before publication.
 - The physical TDM bus and speaker output now run at 48 kHz while the
   synchronized dual-microphone/reference input is converted to 16 kHz for AFE,
   wake-word and Assist processing.
+- The physical TDM format now uses four 16-bit slots and 16-bit samples. Earlier
+  16-bit testing had left the hardware speaker declared at 16 kHz while the bus
+  ran at 48 kHz; the resulting three-times-fast playback was a sample-rate
+  mismatch, not evidence that the codecs required 32-bit framing.
 - The audio-stack base is updated to v2026.9.2, including serialized runtime VAD
   changes and dual-mic post-AFE AGC support. The fork adds sparse DMA on top.
-- `dma_desc_num: 12` aligns DMA with one complete 64 ms AFE quantum and retains
-  usable internal memory. The automatic 15-descriptor geometry exhausted nearly
-  all DMA-capable RAM and did not recognize the wake word in hardware testing.
+- DMA descriptor sizing is automatic again. With sparse 16-bit RX/TX transfers,
+  the stack selects eight 512-frame descriptors, retains its normal processor
+  margin and leaves substantial internal DMA-capable memory available.
 - Large ordinary allocations prefer PSRAM, reserving internal memory for DMA
   and code that must remain internal. Supported audio, mixer, decoder and
   wake-word stacks and buffers are also moved to PSRAM.
@@ -102,8 +106,8 @@ an immutable revision before publication.
   buttons have been exercised on hardware.
 - AFE runtime error counters remained stable during normal voice-assistant
   testing after their initial startup values.
-- The validated 12-descriptor build leaves approximately 12.7 KiB of
-  DMA-capable memory after I2S enable.
+- The validated 16-bit build leaves approximately 50 KiB of DMA-capable memory
+  after I2S enable, with a largest contiguous internal block of about 31 KiB.
 
 ---
 
@@ -138,10 +142,11 @@ Hardware-validated dual-microphone AFE/AEC release for this fork. Tagged
   the echo reference sample-aligned.
 - **Speaker output is intentionally reduced from 48 kHz to a 16 kHz physical
   bus.** Incoming 48 kHz announcements and media are resampled to 16 kHz. This
-  limits music to voice-grade bandwidth, but provides the DMA headroom required
-  for the four-slot, 32-bit dual-mic/reference stream and lets the AFE operate at
-  its native 16 kHz rate. On hardware, the verified geometry is 10 DMA
-  descriptors of 128 frames.
+  release used a four-slot, 32-bit dual-mic/reference stream, which was believed
+  at the time to be required by the codecs, and let the AFE operate at its native
+  16 kHz rate. On hardware, the verified geometry is 10 DMA descriptors of 128
+  frames. Later development established that the codecs also work with 16-bit
+  samples and slots.
 - The ES7210 hardware gain is fixed at 24 dB so runtime changes cannot disturb
   the microphone/reference balance used by AEC. User gain is applied after the
   AFE instead.
@@ -150,16 +155,18 @@ Hardware-validated dual-microphone AFE/AEC release for this fork. Tagged
 
 ### Hardware validation
 
-- A 48 kHz four-slot/32-bit bus was rejected before startup because its
+- A 48 kHz four-slot/32-bit experiment was rejected before startup because its
   1024-sample AFE quantum computed as 20 descriptors of 192 frames, beyond the
   component safety ceiling and measured DMA-capable memory budget.
-- A 48 kHz bus with 16-bit words and 16-bit slots started but broke startup
-  playback and wake-word recognition. Combining 16-bit words with 32-bit slots
-  restored wake detection but left playback silent and Assist capture unable to
-  complete normally.
-- The final 16 kHz/32-bit configuration played the startup chime, detected
+- The apparent failure of the 48 kHz 16-bit experiment was later traced to the
+  speaker still being declared at 16 kHz. It therefore did not establish a
+  32-bit codec requirement; current development validates 48 kHz with 16-bit
+  samples and slots when the hardware speaker rate matches the bus.
+- The final v1.1.0 16 kHz/32-bit configuration played the startup chime, detected
   `Hey Jarvis`, ended capture through VAD, recognized the spoken command,
   completed the intent, played the response, and returned to wake-word mode.
+  This validated that release's configuration, not the necessity of its 32-bit
+  framing.
 - During playback, reference slot 1 rose from roughly -87 dBFS to -38 dBFS while
   unused slot 3 remained near the noise floor, confirming the electrical
   playback-reference path.
