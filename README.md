@@ -165,9 +165,10 @@ same `files:` list as `base/core.yaml` and select both files under `packages:`.
 
    - Keep `ref: v1.1.0` for the immutable stable release. It uses the previous
      16 kHz architecture and does not contain the current beta improvements.
-   - Once a beta round is announced, invited testers should use the `beta`
-     branch. It is advanced deliberately from `dev` and then held stable for
-     that test round; before an announcement it may still lag behind `dev`:
+   - Once a beta round is announced, anyone who wants to test pre-release
+     firmware can use the public `beta` branch. It is advanced deliberately
+     from `dev` and then held stable for that test round; before an announcement
+     it may still lag behind `dev`:
 
      ```yaml
      packages:
@@ -209,8 +210,10 @@ esphome run waveshare-va.yaml
 Documentation for this firmware lives with this repository so that it can be
 versioned together with the implementation:
 
+- **[Installation and updates](docs/INSTALLATION.md)**: complete first-flash,
+  beta-channel, network, validation, update and rollback guide.
 - **This README**: project choice, quick start, features and user-facing
-  configuration.
+  configuration overview.
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
   map, measured DMA geometry, AEC reference and hardware bring-up findings.
 - **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
