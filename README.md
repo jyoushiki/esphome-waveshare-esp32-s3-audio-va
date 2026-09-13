@@ -306,3 +306,17 @@ same `files:` list as `base/core.yaml` and select both files under `packages:`.
 - **[ESPHome](https://esphome.io)**: everything the firmware is built out of.
 - **[Home Assistant Voice PE](https://github.com/esphome/home-assistant-voice-pe)**:
   the sounds, and the phase/ducking model the LED state machine follows.
+
+
+## License and attribution
+
+This project is licensed under the MIT License.
+
+It was originally forked from
+[Michał Zaniewicz's ESPHome Waveshare ESP32-S3 Audio VA project](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va),
+Copyright (c) 2026 Michał Zaniewicz.
+
+Subsequent development and the current project architecture are
+Copyright (c) 2026 Juan Marcos Torero.
+
+See [LICENSE](LICENSE) for the full license terms.
