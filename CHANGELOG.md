@@ -2,26 +2,103 @@
 
 ## Development
 
+Development towards the next public beta and stable release. It requires
+ESPHome 2026.8.0 or newer. The firmware currently uses the audio-stack fork's
+`feature/tdm-sparse-dma` branch; the beta snapshot must pin that dependency to
+an immutable revision before publication.
+
+### Added
+
+- Direction-specific sparse TDM DMA: RX transfers the two microphone slots and
+  analog playback reference, while TX transfers only the speaker slot without
+  changing the codecs' four-slot physical frame.
+- Optional post-AFE AGC for the dual-microphone profile, configured with 15 dB
+  compression gain and a -3 dBFS target.
+- Separate, disabled-by-default controls for live echo cancellation and complete
+  AFE bypass, allowing meaningful A/B recordings without conflating the two.
+- Optional TDM-level and AFE-runtime diagnostic packages. The latter exposes
+  processor levels plus output misses, ring drops, feed rejections and fetch
+  timeouts.
+- `Hey Mycroft` as a fourth wake-word alternative. `OK Nabu` is now first and
+  therefore the only model enabled on a fresh installation by default.
+- A seven-LED cyan volume display that follows the physical ring from one side
+  of the USB-C connector to the other.
+- Project-owned installation, usage, troubleshooting and hardware guides,
+  including a labelled button image and temporary Home Assistant WAV-capture
+  instructions.
+
 ### Changed
 
 - The physical TDM bus and speaker output now run at 48 kHz while the
   synchronized dual-microphone/reference input is converted to 16 kHz for AFE,
   wake-word and Assist processing.
-- The audio stack comes from the fork's `feature/tdm-sparse-dma` branch. RX DMA
-  carries only slots 0, 1 and 2; TX DMA carries only speaker slot 0, while the
-  physical clock retains all four 32-bit slots.
+- The audio-stack base is updated to v2026.9.2, including serialized runtime VAD
+  changes and dual-mic post-AFE AGC support. The fork adds sparse DMA on top.
 - `dma_desc_num: 12` aligns DMA with one complete 64 ms AFE quantum and retains
   usable internal memory. The automatic 15-descriptor geometry exhausted nearly
   all DMA-capable RAM and did not recognize the wake word in hardware testing.
 - Large ordinary allocations prefer PSRAM, reserving internal memory for DMA
-  and task stacks. This prevents Voice Assistant microphone-buffer allocation
-  from rebooting the board after wake detection.
+  and code that must remain internal. Supported audio, mixer, decoder and
+  wake-word stacks and buffers are also moved to PSRAM.
+- Both physical microphones and the analog playback reference now use 30 dB
+  ES7210 gain. Keeping their relationship aligned improves AEC without using
+  analog gain as a user-facing volume control.
+- The effective dual-mic AFE graph is stated explicitly: AEC and Speech
+  Enhancement/BSS enabled, separate NS and AFE VAD disabled, followed by the
+  post-AFE AGC adapter.
+- The bundled wake-word, VAD, Voice PE sound and startup-sound sources are pinned
+  to immutable revisions.
+- Wake capture is anchored to actual announcement playback and starts 600 ms
+  after the chime becomes active, retaining fast speech while suppressing most
+  of the prompt through AEC.
+- Volume buttons use 5% steps. Key 1 raises volume, Key 2 toggles play/pause and
+  Key 3 lowers volume; the GPIO entities themselves are internal.
+- Normal logging starts at INFO while DEBUG remains compiled for temporary
+  runtime selection. Production I2C scanning and idle text-sensor polling are
+  disabled.
+- This repository is documented as an independent firmware project rather than
+  a drop-in variant of the original stock-ESPHome implementation.
+
+### Fixed
+
+- Microphone mute is now restored reliably after reboot without stopping the
+  shared I2S clock or allowing setup actions to overwrite the saved state.
+- Timer entities are updated through one state-refresh path, select the nearest
+  active timer, preserve the next timer when another completes, and avoid stale
+  state after updates or cancellation.
+- Home Assistant API disconnection no longer reboots an otherwise healthy
+  device. Alarm times are validated through one bounded `HH:MM` path before
+  being stored or used.
+- Mixer and audio-pipeline task stacks avoid internal-memory fragmentation that
+  could reboot the device or prevent playback under a full Assist/media load.
+  The announcement resampler remains internal because moving it to PSRAM caused
+  intermittent first-announcement crackle in hardware tests.
+- Physical buttons use 20 ms press/release debounce filters.
+- The amplifier follows actual speaker ownership and is no longer exposed as a
+  manual Home Assistant switch.
+
+### Removed
+
+- Inactive Improv BLE scaffolding.
+- Always-on per-slot TDM level sampling from the normal firmware; it now lives
+  in an opt-in diagnostic package.
+- The redundant diagnostic microphone-stop switch and unused periodic entity
+  updates.
 
 ### Hardware validation
 
 - Startup and wake chimes play at the correct speed and pitch.
 - Wake-word detection, VAD-completed capture, Assist intent processing and TTS
   playback complete successfully with the 48 kHz physical bus.
+- Post-AFE AGC produced a clearly higher recorded speech level on the target S3
+  without the previous dual-mic initialization failure.
+- Raising the playback-reference input to the same 30 dB gain as the microphones
+  improved wake-chime suppression while preserving spoken-command level.
+- Music Assistant playback, announcement ducking, wake detection during music,
+  Assist replies, timers, persisted mute/wake-word state and all three physical
+  buttons have been exercised on hardware.
+- AFE runtime error counters remained stable during normal voice-assistant
+  testing after their initial startup values.
 - The validated 12-descriptor build leaves approximately 12.7 KiB of
   DMA-capable memory after I2S enable.
 
