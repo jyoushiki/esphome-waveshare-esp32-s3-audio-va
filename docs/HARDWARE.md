@@ -1,333 +1,253 @@
-# Waveshare ESP32-S3-AUDIO-Board: hardware reference
+# Waveshare ESP32-S3-AUDIO-Board hardware reference
 
-Pinout and gotchas for the [ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm),
-cross-checked against the sources below. Every value is attributed to its source.
-Several sources contradict each other, including Waveshare's own documentation
-against its own demo code; those conflicts are documented rather than resolved by
-assumption.
+This is the practical hardware reference for the parts of the
+[Waveshare ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm)
+used by this firmware. The values below match the current implementation and
+have been validated on the target board.
 
-| Tier | Source |
-|---|---|
-| **A** | [Schematic PDF v1.1](https://files.waveshare.com/wiki/ESP32-S3-AUDIO-Board/ESP32-S3-AUDIO-Board_1.1.pdf), ground truth for wiring. Text-extracted, so net/pin association is occasionally ambiguous. |
-| **A** | [Official demo ZIP](https://files.waveshare.com/wiki/ESP32-S3-AUDIO-Board/ESP32-S3-AUDIO-Board-Demo.zip), Arduino + ESP-IDF. Ground truth for what firmware actually drives, **but it contains proven stale copy-paste from other boards.** |
-| **B** | [Waveshare wiki](https://www.waveshare.com/wiki/ESP32-S3-AUDIO-Board), pinout tables. (Returns HTTP 403 to some fetchers; a browser User-Agent gets through.) |
-| **B** | An empirically-working community ESPHome config for this board, used as behavioural confirmation. |
-
-## Board identity
+## Board and ESPHome target
 
 | Item | Value |
 |---|---|
-| MCU | **ESP32-S3R8** (bare chip, not a module), dual-core LX7 @ 240 MHz |
-| Flash | **16 MB**, W25Q128JVSI |
-| PSRAM | **8 MB, octal**, in-package (the `R8` suffix). Runs at 80 MHz. |
-| Radio | 2.4 GHz Wi-Fi b/g/n, BT 5 LE. Ceramic antenna + IPEX (resistor reflow) |
-| Power | MP1605GTF-Z buck to 3.314 V, max 2 A |
-| Audio | ES8311 codec (DAC) + NS4150B mono Class-D amp; ES7210 4-ch ADC (mics) |
+| MCU | ESP32-S3R8, dual-core LX7 at 240 MHz |
+| Flash | 16 MB |
+| PSRAM | 8 MB octal, operated at 80 MHz |
+| Radio | 2.4 GHz Wi-Fi and Bluetooth LE |
+| Input codec | ES7210 four-channel ADC |
+| Output codec | ES8311 DAC |
+| Amplifier | NS4150B mono Class-D |
+| I/O expander | TCA9555 |
+| RTC | PCF85063 |
+| Status ring | Seven WS2812-compatible RGB LEDs |
 
-ESPHome target: `board: esp32-s3-devkitc-1`, `variant: esp32s3`, `flash_size: 16MB`,
-framework `esp-idf`.
+The ESPHome target is:
 
-## Audio: one shared I2S bus
+```yaml
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
 
-**Confirmed by three independent sources** (wiki tables, the demo's `bsp_board.h`,
-and the schematic nets). This is the most solid part of this document.
+psram:
+  mode: octal
+  speed: 80MHz
+```
 
-| Signal | GPIO | Direction |
+## Pins used by this firmware
+
+| Function | Pin or expander channel | Direction |
 |---|---|---|
-| I2S **MCLK** | **GPIO12** | ESP32 to both codecs |
-| I2S **BCLK / SCLK** | **GPIO13** | **shared** |
-| I2S **LRCK / WS** | **GPIO14** | **shared** |
-| I2S **DIN** (ES7210 to ESP) | **GPIO15** | in |
-| I2S **DOUT** (ESP to ES8311) | **GPIO16** | out |
+| I2C SDA | GPIO11 | Bidirectional |
+| I2C SCL | GPIO10 | Bidirectional/open drain |
+| I2S MCLK | GPIO12 | ESP32 to codecs |
+| I2S BCLK/SCLK | GPIO13 | ESP32 to codecs |
+| I2S LRCLK/WS | GPIO14 | ESP32 to codecs |
+| I2S DIN | GPIO15 | ES7210 to ESP32 |
+| I2S DOUT | GPIO16 | ESP32 to ES8311 |
+| RGB ring | GPIO38 | Output |
+| Amplifier enable | TCA9555 EXIO8 | Output, active high |
+| Key 1 | TCA9555 EXIO9 | Input, active low |
+| Key 2 | TCA9555 EXIO10 | Input, active low |
+| Key 3 | TCA9555 EXIO11 | Input, active low |
+| Boot button | GPIO0 | Input, active low |
+| Reset button | CHIP_PU/EN | Hardware reset |
 
-**The DAC and the ADC share one clock pair.** The wiki's ES8311 and ES7210
-tables list the same MCLK/SCLK/LRCK; the schematic lands one net set on both
-chips; and the demo opens a **single full-duplex I2S peripheral**
-(`i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle)`).
+Key 1 raises volume, Key 2 toggles play/pause and Key 3 lowers volume. The key
+inputs have 10 kΩ hardware pull-ups and do not require internal pull resistors.
+See the labelled board image in the [usage guide](USAGE.md#physical-controls).
 
-That single shared clock pair is what shapes the whole audio setup, see
-[Shared I2S clocks](#shared-i2s-clocks) below.
+## I2C bus
 
-## I2C: one bus, GPIO10/11
+The board uses one I2C bus at 100 kHz:
 
-| Item | Value |
-|---|---|
-| **SDA** | **GPIO11** |
-| **SCL** | **GPIO10** |
-| Speed | 100 kHz confirmed working |
-
-The schematic uses different net *names* (`ESP32_`, `EXIO_`, `RTC_`, `TP_`,
-`TWI_` for the camera SCCB) but they all resolve to GPIO10/11. Schematic note:
-*"can only be used for I2C, cannot be used for other functions."*
-
-> ⚠️ The HA community thread on this board states *"SDA=10, SCL=11"*, which is
-> **swapped** versus every official source.
-
-| Device | Address |
-|---|---|
-| **ES8311** codec / DAC | **0x18** |
-| **ES7210** ADC / mics | **0x40** |
-| **TCA9555PWR** I/O expander | **0x20** |
-| **PCF85063ATL** RTC | **0x51** |
-
-## TCA9555 I/O expander (0x20)
-
-**There is no reset pin.** The schematic's pin 1 is `INT#`; the part simply has
-none.
-
-| EXIO | Function | Used here |
+| Device | Address | Role |
 |---|---|---|
-| 0 | LCD_RST | - |
-| 1 | TP_RST (touch reset) | - |
-| 2 | TP_INT | - |
-| 3 | SD_D3 / SD CS | - |
-| 4 | **unknown**, no driver references it | - |
-| 5 | CAM_PWDN (active low) | - |
-| 6 | Camera_SEL (clock mux) | **do not drive** |
-| 7 | USB/camera mux | **do not drive** |
-| **8** | **PA_EN, amplifier enable, ACTIVE HIGH** | ✅ `amp_enable` |
-| **9** | **Key1, active low** | ✅ volume down |
-| **10** | **Key2, active low** | ✅ play/pause |
-| **11** | **Key3, active low** | ✅ volume up |
-| 12-15 | expansion header P1 | - |
+| TCA9555 | `0x20` | Buttons and amplifier enable |
+| ES8311 | `0x18` | Speaker DAC |
+| ES7210 | `0x40` | Microphones and playback reference |
+| PCF85063 | `0x51` | Real-time clock |
 
-Keys have **10 kΩ hardware pull-ups to 3V3**, so they are active low and need no
-internal pull.
+GPIO11 is SDA and GPIO10 is SCL.
 
-### "The keys are on 12, not 9/10/11": settled, they are on 9/10/11
+## Audio hardware
 
-A working community config carries `number: 9 # not '12' as schematics say!`. The map
-**9/10/11 (keys) + 8 (PA_EN) is right**, confirmed twice over:
+### Shared full-duplex bus
 
-- Waveshare's **own driver code** reads exactly those:
-  `Button_Driver.cpp` calls `Read_EXIO(TCA9555_EXIO9/10/11)` with
-  `#define BUTTON_ACTIVE_LEVEL 0`, and `Audio_ES8311.cpp` has `Audio_PA_EN()`
-  setting `TCA9555_EXIO8` true.
-- A working community config arrived at the same map empirically, independently.
+The ES7210 and ES8311 share MCLK, BCLK and LRCLK. They must therefore be driven
+by one coordinated full-duplex I2S owner. This firmware uses
+`esp_audio_stack` for both RX and TX; stock independent ESPHome microphone and
+speaker buses must not be added alongside it.
 
-Whether the *schematic* really implies 12 could not be confirmed (PDF text
-extraction loses the geometry, and `Key4`/`Key5` nets also appear near
-`Extend_IO12..15`). It doesn't matter: code and practice agree.
+The validated physical bus format is:
 
-### ⚠️ EXIO6 vs EXIO7: genuine unresolved conflict
-
-The schematic carries explicit warnings naming **EXIO7**: driving it LOW
-disables USB on GPIO19/20 *and forces manual download mode before every flash*;
-driving it HIGH disables UART on GPIO43/44; **EXIO7 defaults HIGH**. But the
-wiki and `Camera_Driver.cpp` attribute the identical function to **EXIO6**.
-
-**Off-by-one, unresolved. For a voice build: never drive either.** Leaving both
-alone keeps USB flashing alive.
-
-## RGB LEDs
-
-| Item | Value |
+| Parameter | Value |
 |---|---|
-| GPIO | **GPIO38**, driven **directly over RMT**, *not* via the expander |
-| Count | **7** (WS2812B-0807, U9-U14 + U19) |
-| RGB order | **RGB** |
+| Bus mode | TDM, ESP32 master, full duplex |
+| Sample rate | 48 kHz |
+| Frame | Four physical slots |
+| Slot width | 32 bits |
+| Sample word width | 32 bits |
+| RX data pin | GPIO15 |
+| TX data pin | GPIO16 |
 
-> On RGB vs GRB: two sources say RGB (the official demo's
-> `LED_STRIP_COLOR_COMPONENT_FMT_RGB`, and a working community config). But
-> WS2812B is *conventionally* GRB, and Waveshare's own line contradicts its own
-> trailing comment (`..._FMT_RGB, // The color order of the strip: GRB`).
-> **Verify visually**: set pure red and check it isn't green.
+RX and TX are independent directions even when they use the same numbered
+physical slot. RX slot 0 is microphone data arriving from the ES7210; TX slot 0
+is speaker data leaving for the ES8311. They share clock position, not sample
+storage or signal content.
 
-## Microphones
+### ES7210 input and TDM slots
 
-**Two physical mics.** Per the schematic:
+The board has two physical microphones and an analog sample of its own playback.
+The latter is a synchronized AEC reference, not a hardware echo-cancellation
+processor.
 
-| ES7210 ch | Wired to |
-|---|---|
-| **MIC1, MIC2** | the two real microphones |
-| **MIC3** | **AEC loopback**, the ES8311 speaker output, attenuated |
-| MIC4 | nets exist, no source found, likely unused |
-
-Corroboration: `MICBIAS12` biases **only** channels 1 and 2, i.e. only those two
-have actual capsules.
-
-The board has a **hardware analog playback-reference path**, not a hardware AEC
-processor. Echo cancellation is performed in software by Espressif's AFE. The
-verified raw TDM slot map for this board revision is:
-
-| TDM slot | Signal |
-|---|---|
-| **0** | right physical microphone |
-| **1** | ES8311 playback reference (ES7210 MIC3) |
-| **2** | left physical microphone |
-| **3** | unused / near-silent |
-
-Waveshare's demo declares `"RMNM"`; that appears to be stale board-support code
-and must not be interpreted as a direct MIC-number-to-slot mapping.
-
-Stock ESPHome cannot enable ES7210 TDM, unpack these four channels from their
-32-bit TDM slots, or run ESP-SR AEC. This firmware uses the pinned external
-`esp_audio_stack` component to own the full-duplex bus and feed slots 0, 2 and 1
-to a dual-mic `esp_afe` processor as `MMR`. Its mono output is what Micro Wake
-Word and Home Assistant receive, so the local wake-word path remains active
-during playback.
-
-## Not used by this firmware
-
-Kept for reference. This build is speaker + mics + ring + buttons only.
-
-- **BOOT button**: GPIO0, active low. **RESET**: hardware `CHIP_PU`, not readable.
-- **SD (1-bit SDMMC)**: CLK GPIO40, CMD GPIO42, D0 GPIO41, CS EXIO3. D1/D2 = NC.
-- **LCD (18-pin FPC)**: CS GPIO3, SCK GPIO4, BL GPIO5, MOSI GPIO9, DC GPIO7,
-  MISO GPIO8, SDA3 GPIO6; RST EXIO0, TP_RST EXIO1, TP_INT EXIO2.
-  ⚠️ Use the **wiki** table for the LCD, not the IDF demo's `bsp_board.h`, which
-  contradicts it (proven stale, see the battery note).
-- **Camera (DVP, 24-pin FPC)**: D0 GPIO2, D1 GPIO17, D2 GPIO18, D3 GPIO39,
-  D4 GPIO45, D5 GPIO46, D6 GPIO47, D7 GPIO48, VSYNC GPIO21, HREF GPIO1,
-  PCLK/XCLK muxed GPIO44/43 or GPIO19/20, PWDN EXIO5.
-- **USB**: D- GPIO19, D+ GPIO20. **UART0**: TX GPIO43, RX GPIO44.
-- **RTC PCF85063ATL** @ 0x51 + 32.768 kHz crystal + backup battery header.
-  The `RTC_INT` net exists but **where it terminates is unconfirmed**.
-  an `rtc_int: 5` seen in a community config collides with CAM_PWDN and is unused there.
-
-### ⚠️ Battery ADC: conflicting sources, don't trust GPIO8
-
-The schematic says **GPIO1** (behind 0 Ω jumpers R53/R78, sharing with CAM_HREF);
-the Arduino demo says `BAT_ADC_PIN 8`. **The schematic is almost certainly right**:
-GPIO8 on this board is LCD_SDA1/MISO, GPIO8 *is* the battery ADC on other
-Waveshare S3 boards (classic copy-paste), and the same demo's LCD pins are
-provably wrong too.
-
-Either way, the schematic notes battery measurement is **not enabled by default**.
-It needs a 0 Ω resistor soldered, **and doing so makes the camera unusable**.
-Divider ratio is 3.0 (R2 200 k / R11 100 k). Treat battery monitoring as
-unavailable.
-
-## Gotchas
-
-### Shared I2S clocks
-
-ES8311 and ES7210 share BCLK/LRCK, so only one device may drive them. On top of
-that, native ESPHome cannot coordinate its independent `i2s_audio` microphone
-and speaker components on one full-duplex peripheral.
-
-This firmware now uses **one `esp_audio_stack` owner** in ESP-master TDM mode:
-
-- One I2S peripheral owns RX and TX together, eliminating the former
-  `Parent bus is busy` problem and the two-port shared-clock workaround.
-- The physical bus runs at 48 kHz with four 32-bit slots. ES7210 places its
-  ADC channels into that frame, while the speech-facing output is converted to
-  16 kHz for Espressif AFE, Micro Wake Word and Voice Assistant.
-- Moving all four physical slots through both DMA directions is not viable on
-  this ESP32-S3 build. A 48 kHz, 1024-sample AFE quantum needs 20 descriptors
-  of 192 frames with the normal 25% margin, exceeding the component's
-  16-descriptor limit and requiring roughly 120 KiB across RX and TX.
-- The forked stack instead keeps `tdm_total_slots: 4` for physical BCLK/WS
-  timing while using independent sparse masks. RX DMA transfers slots 0, 1 and
-  2 (two microphones plus analog playback reference); TX DMA transfers only
-  slot 0 (speaker). ESP-IDF packs those active slots in ascending order and the
-  stack maps them back to their configured physical identities.
-- Reducing only the stored/wire word width was tested, not merely inferred.
-  At 48 kHz with 16-bit words and 16-bit slots, the stack started with
-  `10 x 384` DMA geometry, but neither the startup chime nor wake-word path
-  worked. Using 16-bit words in 32-bit slots restored wake detection, but
-  playback remained silent and the Assist capture did not complete normally.
-  These results show that a successful boot and active raw mic slots are not
-  sufficient; the codecs require the known-good 32-bit word/slot framing here.
-- At 48 kHz, sparse 32-bit DMA uses 256-frame descriptors. The automatic
-  25% margin selected 15 descriptors and left only 871 bytes of DMA-capable
-  memory after I2S enable; wake-word detection did not work in that run.
-  Setting `dma_desc_num: 12` with `processor_dma_margin: false` aligns the queue
-  with exactly one 3072-frame (64 ms) AFE bus quantum, leaving about 12.7 KiB
-  DMA-capable memory after I2S enable. Wake word, Assist capture and correctly
-  pitched 48 kHz playback were then verified end to end.
-- Ordinary allocations larger than 1 KiB prefer PSRAM, with 32 KiB of internal
-  RAM reserved for DMA and task stacks. Without this policy, entering Assist
-  after wake detection exhausted internal memory in `MicrophoneSource` and
-  rebooted the board even though I2S itself had started successfully.
-- Speaker sources are resampled to 48 kHz. Only the synchronized microphone and
-  reference channels are reduced to the AFE's 16 kHz processing rate.
-- ES7210 and ES8311 are configured through `esp_codec_dev`, so the stock
-  `audio_adc` and `audio_dac` components must not also be declared.
-
-Hardware validation measured slots 0 and 2 at about -61 dBFS in a quiet room,
-with slot 3 near -91 dBFS. During startup-sound playback, slot 1 rose from
-about -87 dBFS to -38 dBFS while slot 3 stayed at the noise floor, confirming
-that slot 1 is the electrical playback reference. With the sparse 48 kHz DMA
-path, a live run detected the wake word, ended capture through VAD, recognized
-the spoken command, completed the intent, and played the response at the
-correct speed and pitch.
-
-See `base/core.yaml` for the pinned component version and annotated config.
-
-### ⚠️ Cold-boot failure of the ES7210 / LEDs: no verified fix
-
-There is a [HA community thread](https://community.home-assistant.io/t/help-needed-waveshare-esp32-s3-audio-board-cold-boot-failure-of-es7210-mic-and-leds-tca9555/1009883)
-reporting that the mic and LEDs don't come up on a cold boot, only after a
-reset. **It is a single post with zero replies, a question rather than an
-answer**, so no root cause or fix has been published for this board.
-
-What its register dumps do establish:
-
-| Device | Reg | Warm (works) | Cold (fails) |
-|---|---|---|---|
-| TCA9555 | 0x06 | `0x9C` | `0xFF` |
-| ES7210 | 0x00 | `0x41` | `0x32` |
-| ES7210 | 0x02 | `0xC1` | `0x02` |
-
-TCA9555 regs 0x06/0x07 are the **direction registers**, power-on default
-`0xFF` = all inputs. So the cold dump is just the un-configured power-on state,
-and the warm one is what the previous firmware left behind, meaning **PA_EN
-(EXIO8) is never driven, so the amp stays off.** Waveshare's own code fixes this
-explicitly with `TCA9555PWR_Init(0x0000)` (all pins to output).
-
-What that mechanism does **not** account for:
-
-- **The LED symptom.** The ring is on GPIO38 over RMT, nowhere near the
-  expander, so an expander direction register cannot keep it dark. (The
-  reporter's "green LED" may be `LED1`, the hardware charge indicator, which
-  firmware cannot control.)
-- **The ES7210 registers.** The reporter states that replaying them did not
-  help. Their other unsuccessful attempts were delays up to 1000 ms and bringing
-  MCLK up before I2C.
-
-**What this firmware does** (a mechanism-based mitigation, not a proven fix):
-ESPHome's `tca9555` writes the direction registers itself. `amp_enable` starts
-off, and the audio stack drives PA_EN only while the speaker path is owned.
-
-### Amp idle hiss / turn-on pop
-
-Waveshare's `Audio_Init()` orders it **codec first, amp second**
-(`es8311_codec_init()` then `Audio_PA_EN()`), with a 50 ms delay after each
-`Set_EXIO`. An amp left enabled at boot amplifies the undriven DAC line as a
-faint hiss until the first playback. This firmware gates the amp instead:
-`amp_enable` is `ALWAYS_OFF` at boot; `esp_audio_stack` turns it on when the
-speaker path is required and off again after the speaker becomes idle.
-
-### Strapping pins
-
-ESP32-S3 straps are **GPIO0, GPIO3, GPIO45, GPIO46**.
-
-| Pin | Board use | Risk |
+| TDM slot | Captured signal | Firmware use |
 |---|---|---|
-| GPIO0 | BOOT button | fine, intended |
-| GPIO3 | LCD_CS | floating by default; don't add strong pulls |
-| **GPIO45** | CAM_D4 | ⚠️ must be **LOW at boot** (VDD_SPI = 3.3 V) |
-| **GPIO46** | CAM_D5 | ⚠️ must be **LOW at boot** |
+| 0 | Right microphone | AFE microphone 1 |
+| 1 | Attenuated ES8311 playback | AFE reference |
+| 2 | Left microphone | AFE microphone 2 |
+| 3 | Unused/noise floor | Not transferred |
 
-⚠️ **A camera plugged into J3 sits on two strapping pins.** If the module drives
-them HIGH during reset the board may not boot, which is relevant even for a
-voice-only build if a camera is left connected.
+The AFE input is assembled as `MMR`: two microphone channels followed by the
+reference channel. Both microphone inputs and the ES7210 reference input use
+30 dB analog gain so the echo/reference relationship remains calibrated.
 
-### GPIO33-37 do not exist for you
+### Processing and sample rates
 
-The octal PSRAM occupies **GPIO33-37** (on top of flash on GPIO26-32). No
-Waveshare pinout table assigns them. Any config claiming to use them is wrong.
+The physical codecs remain at 48 kHz. The audio stack converts the selected RX
+channels to 16 kHz before Espressif's speech-recognition AFE. The effective
+processing path is:
 
-## Unresolved
+```text
+ES7210: mic R + mic L + playback reference, 48 kHz
+                         │
+                         ▼
+             Espressif AFE, 16 kHz MMR
+                  AEC → dual-mic SE/BSS
+                         │
+                         ▼
+              Post-AFE WebRTC AGC adapter
+                         │
+                         ▼
+        Micro Wake Word + Home Assistant Assist, 16 kHz mono
+```
 
-Documented rather than guessed at:
+The dual-microphone speech-enhancement graph takes the place of the separate
+noise-suppression stage, so `ns_enabled: false` reflects the effective ESP-SR
+pipeline. Because that ESP-SR profile does not expose its own AGC control, the
+audio-stack integration applies its optional WebRTC AGC adapter after AFE
+output. AFE VAD is disabled; Home Assistant handles the end of spoken-command
+capture. Playback and the mixer remain at 48 kHz.
 
-1. **Battery ADC pin**: GPIO1 (schematic) vs GPIO8 (demo).
-2. **EXIO6 vs EXIO7**: official sources contradict each other.
-3. **ES7210 slot order**: wiring (CH3 = ref) vs demo's `"RMNM"`.
-4. **EXIO4**: no known function.
-5. **RTC_INT**: net exists, terminus unknown.
-6. **RGB vs GRB**: verify with a pure-red test.
-7. **I2C pull-ups**: resistors visible, nets not resolvable from the PDF text.
-8. **Cold-boot fix**: none published.
+## Sparse TDM DMA
+
+The physical frame still contains four slots, but the ESP32-S3 does not need to
+store all of them in both DMA directions:
+
+| Direction | Transferred physical slots |
+|---|---|
+| RX | 0, 1 and 2 |
+| TX | 0 |
+
+ESP-IDF packs the enabled slots for each direction, and the audio stack maps RX
+data back to its configured microphone/reference identities. This reduces
+internal DMA-capable memory without changing BCLK, LRCLK or the codecs' physical
+frame.
+
+The validated DMA operating point is:
+
+| Parameter | Value |
+|---|---|
+| Descriptor count | 12 |
+| Frames per descriptor | 256 |
+| Queued bus frames | 3072 |
+| Queue duration at 48 kHz | 64 ms |
+| Automatic processor margin | Disabled |
+
+The 3072-frame queue equals one 64 ms AFE input quantum at the 48 kHz bus rate.
+Increasing the descriptor margin exhausted the internal DMA reserve during
+testing and prevented reliable wake-word operation. The 32-bit slot/word format
+is also required by the validated codec configuration.
+
+## Memory layout
+
+The ESP32-S3's internal RAM is needed for I2S DMA, ESP-SR and code that cannot
+run safely from external memory. The firmware therefore:
+
+- reserves 32 KiB of internal RAM;
+- prefers PSRAM for ordinary allocations larger than 1 KiB;
+- places supported audio, mixer, decoder and wake-word task stacks in PSRAM;
+- places large audio buffers and supported AFE rings in PSRAM.
+
+These settings are part of the working audio architecture. Removing them may
+allow the firmware to boot but fail later when Assist starts or while media and
+announcements run together.
+
+## Speaker and amplifier
+
+The ES8311 provides one mono output to the NS4150B amplifier. A second playback
+channel would be discarded by the hardware.
+
+The amplifier is disabled at boot and follows speaker ownership:
+
+- it is enabled when the audio stack requires the physical speaker path;
+- it is disabled after the speaker becomes idle.
+
+This avoids leaving the amplifier connected to an undriven DAC line during
+startup and reduces idle hiss and turn-on artifacts. The amplifier control is
+internal because it is not an independent user setting.
+
+## Status ring
+
+| Parameter | Value |
+|---|---|
+| Data pin | GPIO38 |
+| LED count | 7 |
+| Component order | RGB |
+| Driver | ESP32 RMT |
+
+The ring is connected directly to the ESP32, not through the TCA9555 expander.
+Firmware state and configurable effects are described in the
+[usage guide](USAGE.md#led-ring-states).
+
+## USB, boot and unavailable GPIOs
+
+USB D- and D+ use GPIO19 and GPIO20. Hold Boot while resetting the board only
+when manual download mode is required; ordinary operation and OTA updates do
+not use the Boot button.
+
+The ESP32-S3R8's octal flash/PSRAM interface occupies GPIO26 through GPIO37.
+GPIO33 through GPIO37 must not be assigned to application components.
+
+The LCD, camera, SD-card and battery-sensing interfaces are not configured or
+supported by this voice-assistant firmware. Adding them requires a separate
+pin/resource review, particularly because camera pins include ESP32-S3
+strapping pins and may affect boot.
+
+## Validation measurements
+
+The optional TDM level diagnostics measured:
+
+- slots 0 and 2 at approximately -61 dBFS in a quiet room;
+- unused slot 3 near -91 dBFS;
+- slot 1 rising from approximately -87 dBFS to -38 dBFS during startup-sound
+  playback while slot 3 remained at its noise floor.
+
+These measurements confirm the two microphone slots and the electrical playback
+reference. The complete 48 kHz path has been tested with on-device wake-word
+detection, AEC, command capture and VAD completion, Assist recognition,
+correctly pitched responses, music, announcements and simultaneous
+music/Assist operation.
+
+For temporary per-slot or AFE runtime telemetry, use the diagnostic packages
+described in the [README](../README.md#optional-raw-tdm-diagnostics).
+
+## Sources
+
+- [Waveshare ESP32-S3-AUDIO-Board product wiki](https://www.waveshare.com/wiki/ESP32-S3-AUDIO-Board)
+- [Waveshare schematic v1.1](https://files.waveshare.com/wiki/ESP32-S3-AUDIO-Board/ESP32-S3-AUDIO-Board_1.1.pdf)
+- [Waveshare Arduino and ESP-IDF examples](https://files.waveshare.com/wiki/ESP32-S3-AUDIO-Board/ESP32-S3-AUDIO-Board-Demo.zip)
+- [Espressif ESP32-S3 datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf)
+- [ESPHome Audio Stack](https://github.com/n-IA-hane/esphome-audio-stack)

@@ -210,12 +210,14 @@ esphome run waveshare-va.yaml
 Documentation for this firmware lives with this repository so that it can be
 versioned together with the implementation:
 
+- **This README**: project choice, quick start, features and user-facing
+  configuration overview.
 - **[Installation and updates](docs/INSTALLATION.md)**: complete first-flash,
   beta-channel, network, validation, update and rollback guide.
 - **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
   Home Assistant controls, diagnostic entities and LED-ring meanings.
-- **This README**: project choice, quick start, features and user-facing
-  configuration overview.
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: symptom-led checks for builds,
+  connectivity, wake words, capture, playback and runtime audio faults.
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
   map, measured DMA geometry, AEC reference and hardware bring-up findings.
 - **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
@@ -256,7 +258,10 @@ secrets.example.yaml       # copy to secrets.yaml
 base/
   core.yaml                # the always-on core package fetched by waveshare-va.yaml
 docs/
-  HARDWARE.md              # pinout, I2C map, gotchas
+  INSTALLATION.md          # install, update, rollback and WAV capture
+  USAGE.md                 # controls, entities and LED states
+  TROUBLESHOOTING.md       # symptom-led diagnosis
+  HARDWARE.md              # pinout, I2C map and audio architecture
 scripts/
   validate.py              # offline YAML check (syntax, substitutions, duplicate ids)
   esplog.py                # stream device logs over the native API
