@@ -84,6 +84,9 @@ an immutable revision before publication.
   in an opt-in diagnostic package.
 - The redundant diagnostic microphone-stop switch and unused periodic entity
   updates.
+- The obsolete Claude Code skill, whose duplicated hardware and configuration
+  notes had diverged from the firmware. Project documentation now lives only in
+  the normal, versioned guides.
 
 ### Hardware validation
 

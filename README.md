@@ -268,8 +268,6 @@ docs/
 scripts/
   validate.py              # offline YAML check (syntax, substitutions, duplicate ids)
   esplog.py                # stream device logs over the native API
-skill/
-  waveshare-esp32-s3-audio/  # Claude Code skill: pinout + hard-won gotchas
 ```
 
 ## Configuration
@@ -292,17 +290,6 @@ What lives in `waveshare-va.yaml`:
 
 Pins and the audio format are substitutions too (in `base/core.yaml`), but you
 should not need them unless you are porting to another board.
-
-## Claude Code skill
-
-This repo ships a [Claude Code](https://claude.com/claude-code) skill at
-[`skill/waveshare-esp32-s3-audio/`](skill/waveshare-esp32-s3-audio/SKILL.md):
-the pinout, the shared-I2S constraint, and the gotchas that cost real debugging
-time. Install it user-wide so any session picks it up:
-
-```bash
-cp -r skill/waveshare-esp32-s3-audio ~/.claude/skills/
-```
 
 ## Credits
 
