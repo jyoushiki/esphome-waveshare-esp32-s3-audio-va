@@ -1468,6 +1468,9 @@ binary_sensor:
       tca9555: ioexp
       number: ${key1_exio}
       inverted: true
+    filters: &button_debounce
+      - delayed_on: 20ms
+      - delayed_off: 20ms
     on_press:
       - media_player.volume_up: external_media_player
 
@@ -1479,6 +1482,7 @@ binary_sensor:
       tca9555: ioexp
       number: ${key2_exio}
       inverted: true
+    filters: *button_debounce
     on_press:
       - media_player.toggle: external_media_player
 
@@ -1490,5 +1494,6 @@ binary_sensor:
       tca9555: ioexp
       number: ${key3_exio}
       inverted: true
+    filters: *button_debounce
     on_press:
       - media_player.volume_down: external_media_player
