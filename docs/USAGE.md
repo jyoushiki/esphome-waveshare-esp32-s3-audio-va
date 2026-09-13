@@ -6,7 +6,9 @@ Home Assistant may add.
 
 ## Physical controls
 
-![Button positions on the Waveshare ESP32-S3-AUDIO-Board: Reset, Boot, volume down, play-pause and volume up](buttons.png)
+<img src="buttons.png"
+     alt="Button positions on the Waveshare ESP32-S3-AUDIO-Board: Reset, Boot, volume down, play-pause and volume up"
+     width="560">
 
 | Board button | Action |
 |---|---|
