@@ -17,10 +17,6 @@ speech front end.
 > remains the foundation and is credited under the original license; this
 > repository's documentation describes this firmware only.
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/0eae0230-de47-4f20-a6ea-47f65af35f86" controls width="400"></video>
-</div>
-
 > [!IMPORTANT]
 > **Release status:** `v1.1.0` is the last stable tag, using the earlier 16 kHz
 > audio layout. Development of the next release happens on the moving `dev`
@@ -62,7 +58,11 @@ the two audio architectures require different diagnosis.
 
 ## What it does
 
-![Home Assistant entities, the LED ring animation picker, the media player and the wake-word controls](docs/features.jpg)
+| Voice and audio | Experience and control |
+|---|---|
+| 🎙️ **Local voice satellite**<br>On-device wake words and the complete Home Assistant Assist pipeline | 💡 **Visible feedback**<br>Seven-LED status ring with configurable phase animations and volume display |
+| 🔊 **Full-duplex audio**<br>48 kHz playback with dual microphones, synchronized reference and local AEC | 🎛️ **Live Home Assistant controls**<br>Wake words, sensitivity, microphone gain, mute, sounds and brightness without reflashing |
+| 🎵 **Music and announcements**<br>Music Assistant playback, mixed announcements and automatic ducking | ⏱️ **Voice timers**<br>Countdown state, ring indication and spoken cancellation |
 
 - **Voice assistant**: on-device wake words via `micro_wake_word`, with
   `okay_nabu` enabled by default and `hey_jarvis`, `alexa` and `hey_mycroft`
