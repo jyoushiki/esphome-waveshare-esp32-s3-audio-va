@@ -384,7 +384,6 @@ speaker:
   - platform: resampler
     id: announcement_resampling_speaker
     output_speaker: announcement_mixing_input
-    task_stack_in_psram: true
   - platform: resampler
     id: media_resampling_speaker
     output_speaker: media_mixing_input
