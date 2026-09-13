@@ -1,0 +1,81 @@
+# Optional AFE runtime diagnostics. Include this package only while diagnosing
+# intermittent low, metallic or discontinuous microphone audio. It compiles
+# per-stage counters into the audio loop and emits their deltas every ~2 seconds
+# at the current 64 ms processor cadence.
+#
+# Healthy intervals should normally report zero for:
+#   +glitch, +in_drop, +feed_rej, +fetch_to and +out_drop
+#
+# Remove this package after testing because telemetry adds cycle accounting and
+# DEBUG logging to the real-time audio path.
+
+esp_audio_stack:
+  telemetry: true
+  telemetry_log_interval_frames: 32
+
+logger:
+  logs:
+    audio_stack: DEBUG
+    esp_afe: DEBUG
+
+sensor:
+  - platform: esp_afe
+    esp_afe_id: afe_processor
+    input_volume:
+      id: afe_diagnostic_input_volume
+      name: "AFE input volume"
+      update_interval: 1s
+    output_rms:
+      id: afe_diagnostic_output_rms
+      name: "AFE output RMS"
+      update_interval: 1s
+
+  - platform: template
+    id: afe_diagnostic_glitches
+    name: "AFE output misses"
+    icon: mdi:counter
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: return id(afe_processor).telemetry().glitch_count;
+
+  - platform: template
+    id: afe_diagnostic_input_drops
+    name: "AFE input ring drops"
+    icon: mdi:counter
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: return id(afe_processor).telemetry().input_ring_drop;
+
+  - platform: template
+    id: afe_diagnostic_feed_rejected
+    name: "AFE feed rejected"
+    icon: mdi:counter
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: return id(afe_processor).telemetry().feed_rejected;
+
+  - platform: template
+    id: afe_diagnostic_fetch_timeouts
+    name: "AFE fetch timeouts"
+    icon: mdi:counter
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: return id(afe_processor).telemetry().fetch_timeout;
+
+  - platform: template
+    id: afe_diagnostic_output_drops
+    name: "AFE output ring drops"
+    icon: mdi:counter
+    entity_category: diagnostic
+    state_class: total_increasing
+    accuracy_decimals: 0
+    update_interval: 2s
+    lambda: return id(afe_processor).telemetry().output_ring_drop;

@@ -282,12 +282,13 @@ esp_audio_stack:
       address: 0x40
       mic_selected: 0x0F
       # Give the two physical microphones 6 dB more analog gain than the
-      # previously calibrated baseline. Keep the already-strong analog
-      # playback-reference channel at 24 dB so the AEC reference does not clip.
-      # This is the zero-based ES7210 ADC input (MIC3), not TDM slot 1.
+      # previously calibrated baseline. Apply the same gain to the analog
+      # playback-reference channel so its level relative to the captured echo
+      # remains calibrated for AEC. This is the zero-based ES7210 ADC input
+      # (MIC3), not TDM slot 1.
       gain_db: 30.0
       ref_channel: 2
-      ref_gain_db: 24.0
+      ref_gain_db: 30.0
     output:
       type: es8311
       address: 0x18
@@ -507,9 +508,12 @@ micro_wake_word:
                                       sound_file: !lambda return id(wake_word_triggered_sound);
                                   # play_file() is queued, so anchor the delay to
                                   # actual playback rather than the queue call.
-                                  # Start listening during the quiet tail of the
-                                  # 947 ms file: its audible transient is mostly
-                                  # over by 300 ms and AEC removes the remainder.
+                                  # The 947 ms file has a long quiet tail, while
+                                  # measured speaker/pipeline latency places its
+                                  # audible transient roughly 450-675 ms after
+                                  # announcing begins. Start during its final,
+                                  # low-energy/AEC-suppressed tail so fast users
+                                  # do not lose the first syllable.
                                   - wait_until:
                                       condition:
                                         media_player.is_announcing:
@@ -518,7 +522,7 @@ micro_wake_word:
                                       condition:
                                         media_player.is_announcing:
                                       then:
-                                        - delay: 300ms
+                                        - delay: 600ms
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
