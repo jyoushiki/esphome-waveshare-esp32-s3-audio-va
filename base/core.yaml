@@ -371,6 +371,9 @@ speaker:
     id: mixing_speaker
     output_speaker: i2s_audio_speaker
     num_channels: 1
+    # The 4 KiB mixer task is created on demand. Keep its stack in PSRAM so a
+    # temporarily fragmented internal heap cannot make Assist playback fail.
+    task_stack_in_psram: true
     source_speakers:
       - id: announcement_mixing_input
         timeout: never
