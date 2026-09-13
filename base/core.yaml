@@ -637,10 +637,10 @@ voice_assistant:
     - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
     - script.execute: control_leds
   on_timer_finished:
+    # A different timer may still be active, so promote it instead of
+    # unconditionally clearing the public next-timer entities.
+    - script.execute: refresh_next_timer
     - switch.turn_on: timer_ringing
-    - lambda: |
-        id(next_timer).publish_state(-1);
-        id(next_timer_name).publish_state("-");
   on_timer_started:
     - script.execute: refresh_next_timer
     - script.execute: control_leds
@@ -840,6 +840,7 @@ globals:
   - id: is_timer_active
     type: bool
     restore_value: no
+    initial_value: 'false'
 
 script:
   # Single entry point for alarm-time state, including restored flash values.
@@ -959,8 +960,6 @@ script:
           const bool ringing        = id(timer_ringing).state;
           const bool init_progress  = id(init_in_progress);
           const int  phase          = id(voice_assistant_phase);
-
-          id(check_if_timers_active).execute();
           const bool timers_active = id(is_timer_active);
 
           ESP_LOGD("led",
@@ -1117,21 +1116,6 @@ script:
             id(next_timer).publish_state(-1);
             id(next_timer_name).publish_state("-");
           }
-
-  - id: check_if_timers_active
-    then:
-      - lambda: |
-          const auto &timers = id(va).get_timers();
-          bool output = false;
-          if (!timers.empty()) {
-            for (const auto &timer : timers) {
-              if (timer.is_active) {
-                output = true;
-                break;
-              }
-            }
-          }
-          id(is_timer_active) = output;
 
   - id: check_alarm
     then:
