@@ -106,6 +106,27 @@ The optional entities report slots 0 and 2 for the physical microphones, slot
 channel. Remove the package again after diagnosis to eliminate the periodic RMS
 work.
 
+## Optional AFE runtime diagnostics
+
+For intermittent low, metallic or discontinuous processed audio, include
+[`diagnostics/afe-runtime.yaml`](diagnostics/afe-runtime.yaml) instead. It
+publishes the AFE input/output levels and accumulated output-miss, ring-drop,
+feed-rejection and fetch-timeout counters to Home Assistant, while also logging
+short-interval performance telemetry:
+
+```yaml
+packages:
+  core: !include base/core.yaml
+  afe_runtime_diagnostics: !include diagnostics/afe-runtime.yaml
+```
+
+Healthy operation should leave the error counters unchanged after startup.
+Remove this package after diagnosis because its DEBUG logging and telemetry add
+work to the real-time audio path.
+
+For a remotely fetched Git package, add `diagnostics/afe-runtime.yaml` to the
+same `files:` list as `base/core.yaml` and select both files under `packages:`.
+
 ## Quick start
 
 > Requires **ESPHome 2026.8.0+**, ESP-IDF, and the board's octal PSRAM.
@@ -193,6 +214,7 @@ What lives in `waveshare-va.yaml`:
 | `volume_min` / `volume_max` | `0.4` / `0.8` | Media player clamps, because the onboard amp distorts near the top. |
 | `hidden_ssid` | `false` | `true` enables `fast_connect` for a hidden SSID. |
 | `boot_sound_file` | repo `startup.mp3` | The connect-to-HA chime. Any URL or local MP3/FLAC/WAV. |
+| `wake_chime_capture_delay` | `600ms` | Delay before Assist starts capturing after the wake chime begins; tune for custom sounds. |
 
 Pins and the audio format are substitutions too (in `base/core.yaml`), but you
 should not need them unless you are porting to another board.

@@ -58,6 +58,11 @@ substitutions:
   volume_min: '0.4'
   volume_max: '0.8'
 
+  # Delay from the announcement state becoming active to opening the Assist
+  # capture. The bundled wake chime was validated at 600 ms; custom sounds may
+  # need a different value to avoid recording the prompt or clipping speech.
+  wake_chime_capture_delay: 600ms
+
   # Clock timezone in POSIX form - the device has no IANA database. It is only
   # a fallback: HA's time platform syncs the clock, and the `set_time_zone` API
   # action overwrites this at runtime (persisted). Grab yours from
@@ -522,7 +527,7 @@ micro_wake_word:
                                       condition:
                                         media_player.is_announcing:
                                       then:
-                                        - delay: 600ms
+                                        - delay: ${wake_chime_capture_delay}
                             - voice_assistant.start:
                                 wake_word: !lambda return wake_word;
 
@@ -1404,7 +1409,7 @@ switch:
 
 number:
   # Runtime gain is deliberately applied after AEC/AFE. The ES7210 hardware
-  # gain stays at 30 dB for the physical mics and 24 dB for the reference, so
+  # gain stays at 30 dB for both physical mics and the reference, so
   # changing this control cannot alter the relationship seen by the processor.
   - platform: esp_audio_stack
     esp_audio_stack_id: audio_stack
