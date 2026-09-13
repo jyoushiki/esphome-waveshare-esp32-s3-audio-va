@@ -633,34 +633,13 @@ voice_assistant:
         id(next_timer).publish_state(-1);
         id(next_timer_name).publish_state("-");
   on_timer_started:
-    - lambda: |
-        id(check_if_timers_active).execute();
-        if (id(is_timer_active)) {
-          id(fetch_first_active_timer).execute();
-          id(next_timer).publish_state(id(first_active_timer).seconds_left);
-          id(next_timer_name).publish_state(id(first_active_timer).name);
-        }
+    - script.execute: refresh_next_timer
     - script.execute: control_leds
   on_timer_cancelled:
-    - lambda: |
-        id(check_if_timers_active).execute();
-        if (id(is_timer_active)) {
-          id(fetch_first_active_timer).execute();
-          id(next_timer).publish_state(id(first_active_timer).seconds_left);
-          id(next_timer_name).publish_state(id(first_active_timer).name);
-        } else {
-          id(next_timer).publish_state(-1);
-          id(next_timer_name).publish_state("-");
-        }
+    - script.execute: refresh_next_timer
     - script.execute: control_leds
   on_timer_updated:
-    - lambda: |
-        id(check_if_timers_active).execute();
-        if (id(is_timer_active)) {
-          id(fetch_first_active_timer).execute();
-          id(next_timer).publish_state(id(first_active_timer).seconds_left);
-          id(next_timer_name).publish_state(id(first_active_timer).name);
-        }
+    - script.execute: refresh_next_timer
     - script.execute: control_leds
   on_timer_tick:
     - lambda: |
@@ -1102,6 +1081,32 @@ script:
           }
           if (next_timer != nullptr) {
             id(first_active_timer) = *next_timer;
+          }
+
+  # Keep the public timer sensors and the cached active-state flag consistent
+  # for every timer lifecycle event. In particular, timer updates can also
+  # leave no active timers and must clear the formerly published value.
+  - id: refresh_next_timer
+    mode: restart
+    then:
+      - lambda: |-
+          const auto &timers = id(va).get_timers();
+          const voice_assistant::Timer *closest_timer = nullptr;
+          for (const auto &timer : timers) {
+            if (timer.is_active &&
+                (closest_timer == nullptr || timer.seconds_left < closest_timer->seconds_left)) {
+              closest_timer = &timer;
+            }
+          }
+
+          id(is_timer_active) = closest_timer != nullptr;
+          if (closest_timer != nullptr) {
+            id(first_active_timer) = *closest_timer;
+            id(next_timer).publish_state(closest_timer->seconds_left);
+            id(next_timer_name).publish_state(closest_timer->name);
+          } else {
+            id(next_timer).publish_state(-1);
+            id(next_timer_name).publish_state("-");
           }
 
   - id: check_if_timers_active
