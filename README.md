@@ -29,11 +29,6 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
          (wake word + audio)      (STT / LLM / TTS)
 ```
 
-> [!TIP]
-> ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
->
-> [![Star this repo](https://img.shields.io/github/stars/jyoushiki/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
-
 ## Choosing between this project and Michał's
 
 Both projects target the same board and share the same origin, but optimize for
@@ -110,47 +105,11 @@ The tradeoff is additional rate-conversion work and reliance on the fork's
 release. See [Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks)
 for the measured DMA geometry and validation results.
 
-## Optional raw TDM diagnostics
+> [!TIP]
+> ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
+>
+> [![Star this repo](https://img.shields.io/github/stars/jyoushiki/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
 
-The normal firmware omits continuous raw-bus level monitoring. Marking an
-ESPHome entity `disabled_by_default` hides it in Home Assistant, but does not
-stop the device from sampling it inside the audio task. When investigating the
-microphones or AEC reference, add
-[`diagnostics/tdm-levels.yaml`](diagnostics/tdm-levels.yaml) as a second package:
-
-```yaml
-packages:
-  core: !include base/core.yaml
-  tdm_diagnostics: !include diagnostics/tdm-levels.yaml
-```
-
-For a remotely fetched Git package, add `diagnostics/tdm-levels.yaml` to the
-same `files:` list as `base/core.yaml` and use the same repository revision.
-The optional entities report slots 0 and 2 for the physical microphones, slot
-1 for the analog playback reference and slot 3 for the unused/noise-floor
-channel. Remove the package again after diagnosis to eliminate the periodic RMS
-work.
-
-## Optional AFE runtime diagnostics
-
-For intermittent low, metallic or discontinuous processed audio, include
-[`diagnostics/afe-runtime.yaml`](diagnostics/afe-runtime.yaml) instead. It
-publishes the AFE input/output levels and accumulated output-miss, ring-drop,
-feed-rejection and fetch-timeout counters to Home Assistant, while also logging
-short-interval performance telemetry:
-
-```yaml
-packages:
-  core: !include base/core.yaml
-  afe_runtime_diagnostics: !include diagnostics/afe-runtime.yaml
-```
-
-Healthy operation should leave the error counters unchanged after startup.
-Remove this package after diagnosis because its DEBUG logging and telemetry add
-work to the real-time audio path.
-
-For a remotely fetched Git package, add `diagnostics/afe-runtime.yaml` to the
-same `files:` list as `base/core.yaml` and select both files under `packages:`.
 
 ## Quick start
 
@@ -252,6 +211,7 @@ applies post-AFE AGC and publishes processed mono audio to Micro Wake Word and
 Home Assistant. ESP-SR omits its separate NS stage from this dual-mic graph;
 playback remains at 48 kHz. The annotated configuration is in `base/core.yaml`.
 
+
 ## Repository layout
 
 ```
@@ -291,6 +251,48 @@ What lives in `waveshare-va.yaml`:
 Pins and the audio format are substitutions too (in `base/core.yaml`), but you
 should not need them unless you are porting to another board.
 
+## Optional raw TDM diagnostics
+
+The normal firmware omits continuous raw-bus level monitoring. Marking an
+ESPHome entity `disabled_by_default` hides it in Home Assistant, but does not
+stop the device from sampling it inside the audio task. When investigating the
+microphones or AEC reference, add
+[`diagnostics/tdm-levels.yaml`](diagnostics/tdm-levels.yaml) as a second package:
+
+```yaml
+packages:
+  core: !include base/core.yaml
+  tdm_diagnostics: !include diagnostics/tdm-levels.yaml
+```
+
+For a remotely fetched Git package, add `diagnostics/tdm-levels.yaml` to the
+same `files:` list as `base/core.yaml` and use the same repository revision.
+The optional entities report slots 0 and 2 for the physical microphones, slot
+1 for the analog playback reference and slot 3 for the unused/noise-floor
+channel. Remove the package again after diagnosis to eliminate the periodic RMS
+work.
+
+## Optional AFE runtime diagnostics
+
+For intermittent low, metallic or discontinuous processed audio, include
+[`diagnostics/afe-runtime.yaml`](diagnostics/afe-runtime.yaml) instead. It
+publishes the AFE input/output levels and accumulated output-miss, ring-drop,
+feed-rejection and fetch-timeout counters to Home Assistant, while also logging
+short-interval performance telemetry:
+
+```yaml
+packages:
+  core: !include base/core.yaml
+  afe_runtime_diagnostics: !include diagnostics/afe-runtime.yaml
+```
+
+Healthy operation should leave the error counters unchanged after startup.
+Remove this package after diagnosis because its DEBUG logging and telemetry add
+work to the real-time audio path.
+
+For a remotely fetched Git package, add `diagnostics/afe-runtime.yaml` to the
+same `files:` list as `base/core.yaml` and select both files under `packages:`.
+
 ## Credits
 
 - **[Michał Zaniewicz](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)**:
@@ -301,6 +303,6 @@ should not need them unless you are porting to another board.
   firmware.
 - **[jensenbox](https://github.com/jensenbox/waveshare-esp32-s3-audio)**: the
   early ESP-master I2S layout that informed this board's bring-up.
-- **ESPHome**: everything the firmware is built out of.
+- **[ESPHome](https://esphome.io)**: everything the firmware is built out of.
 - **[Home Assistant Voice PE](https://github.com/esphome/home-assistant-voice-pe)**:
   the sounds, and the phase/ducking model the LED state machine follows.
