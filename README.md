@@ -216,6 +216,8 @@ versioned together with the implementation:
   beta-channel, network, validation, update and rollback guide.
 - **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
   Home Assistant controls, diagnostic entities and LED-ring meanings.
+- **[Public beta testing](docs/BETA_TESTING.md)**: basic and extended test
+  matrices plus a consistent results template.
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: symptom-led checks for builds,
   connectivity, wake words, capture, playback and runtime audio faults.
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
@@ -260,6 +262,7 @@ base/
 docs/
   INSTALLATION.md          # install, update, rollback and WAV capture
   USAGE.md                 # controls, entities and LED states
+  BETA_TESTING.md          # public beta test matrix and report format
   TROUBLESHOOTING.md       # symptom-led diagnosis
   HARDWARE.md              # pinout, I2C map and audio architecture
 scripts/
