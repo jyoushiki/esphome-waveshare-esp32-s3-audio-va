@@ -2,29 +2,31 @@
 
 # ESPHome Voice Assistant for the Waveshare ESP32-S3-AUDIO-Board
 
-A **Home Assistant voice satellite** running on the
+A hardware-specific **Home Assistant voice satellite** running on the
 [Waveshare ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm),
 the little AI smart-speaker devkit with a dual-mic array, an ES8311 codec, three
-buttons and a 7-LED RGB ring. It uses ESPHome plus a pinned external audio
-component: an always-on core you pull as a package, plus one thin config file
-you actually edit.
+buttons and a 7-LED RGB ring. It combines ESPHome with an external audio stack
+to use the board as one coordinated full-duplex audio device: 48 kHz playback,
+both microphones, the analog playback reference, local AEC and Espressif's
+speech front end.
 
 > [!NOTE]
-> This fork is based on
-> [Michał Zaniewicz's original project](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va).
-> Release `v1.1.0` adds a hardware playback-reference path,
-> dual-microphone Espressif AFE processing, local AEC, and the accompanying
-> board validation notes. The original copyright and license are preserved.
+> This project started as a fork of
+> [Michał Zaniewicz's firmware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va),
+> but now follows an independent architecture and release path. Michał's work
+> remains the foundation and is credited under the original license; this
+> repository's documentation describes this firmware only.
 
 <div align="center">
   <video src="https://github.com/user-attachments/assets/0eae0230-de47-4f20-a6ea-47f65af35f86" controls width="400"></video>
 </div>
 
-> **Status: stable for this fork (`v1.1.0`).** Wake word, VAD-ended
-> capture, STT/TTS, playback, the dual microphones, and the analog AEC reference
-> are confirmed on-device. The upstream project's broader documentation remains
-> available in its
-> [Wiki](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki).
+> [!IMPORTANT]
+> **Release status:** `v1.1.0` is the last stable tag, using the earlier 16 kHz
+> audio layout. Development of the next release happens on the moving `dev`
+> branch and contains the 48 kHz TDM architecture described below. Each beta
+> round will use a deliberately selected `beta` snapshot of `dev`; pin its
+> commit SHA if an installation must remain exactly reproducible afterwards.
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
@@ -34,7 +36,29 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 > [!TIP]
 > ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
 >
-> [![Star this repo](https://img.shields.io/github/stars/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)
+> [![Star this repo](https://img.shields.io/github/stars/jyoushiki/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
+
+## Choosing between this project and Michał's
+
+Both projects target the same board and share the same origin, but optimize for
+different things. Neither is intended as a drop-in configuration source for the
+other.
+
+| | This project | Michał's original project |
+|---|---|---|
+| Audio ownership | One external full-duplex audio stack owns RX and TX | Stock ESPHome `i2s_audio` components on two logical buses |
+| Physical playback | 48 kHz, four 32-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
+| Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
+| Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
+| Dependencies | External `esphome-audio-stack`, currently including a pending sparse-DMA contribution | Pure stock ESPHome; no external audio component |
+| Main advantage | Better use of this board's audio hardware, echo handling and 48 kHz output | Simpler build, fewer moving parts and easier alignment with stock ESPHome |
+| Main tradeoff | More code, RAM pressure, build time and hardware-specific complexity | Lower playback bandwidth and no use of the board's analog reference for AEC |
+
+Choose Michał's implementation if avoiding external components is the priority.
+Choose this one if dual-mic processing, local echo cancellation and 48 kHz
+playback justify the additional dependency and complexity. Bugs and setup
+questions must be reported against the repository whose firmware is installed;
+the two audio architectures require different diagnosis.
 
 ## What it does
 
@@ -136,37 +160,72 @@ same `files:` list as `base/core.yaml` and select both files under `packages:`.
    `secrets.yaml` containing `wifi_ssid` and `wifi_password`. You can copy
    `secrets.example.yaml` as a starting point. Never commit the populated file.
 2. Copy only **`waveshare-va.yaml`** next to it and edit the `substitutions:` at
-   the top (device name, timezone, volume limits). Its `packages:` block pulls
-   `base/core.yaml` from this fork's immutable `v1.1.0` tag at compile time.
-3. **First flash over USB**, then updates go wireless:
+   the top (device name, timezone and volume limits).
+3. Choose the firmware channel in its `packages:` block:
+
+   - Keep `ref: v1.1.0` for the immutable stable release. It uses the previous
+     16 kHz architecture and does not contain the current beta improvements.
+   - Once a beta round is announced, invited testers should use the `beta`
+     branch. It is advanced deliberately from `dev` and then held stable for
+     that test round; before an announcement it may still lag behind `dev`:
+
+     ```yaml
+     packages:
+       core:
+         url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va
+         ref: beta
+         files:
+           - base/core.yaml
+         refresh: always
+     ```
+
+     Do not point a tester at the rolling `dev` branch. Once a test setup is
+     known-good, replace `beta` with its commit SHA if you need to preserve that
+     exact build after the next beta round begins.
+4. **First flash over USB**, then updates go wireless:
    ```
    esphome run waveshare-va.yaml
    ```
    Or drop both files into the ESPHome dashboard's `/config/esphome/` and hit
    Install.
-4. In Home Assistant: the new ESPHome device appears, open **Configure** and
+5. In Home Assistant: the new ESPHome device appears, open **Configure** and
    assign an Assist pipeline.
-5. Say "OK Nabu"; the ring should go violet after it is detected. Because it
+6. Say "OK Nabu"; the ring should go violet after it is detected. Because it
    is the first configured model, ESPHome enables only this model on the first
    boot. `Hey Jarvis`, `Alexa` and `Hey Mycroft` are also installed and can be
    enabled from Home Assistant. ESPHome saves and restores each model's enabled
    state in flash.
 
-The example config pins the immutable `v1.1.0` tag so Device Builder rebuilds
-are reproducible. After changing `ref:` for a future upgrade, clean the ESPHome
-build files once so the package cache is refreshed.
+After changing between a tag, branch or commit, clean the ESPHome build files
+once so both the package and generated build state are refreshed:
+
+```
+esphome clean waveshare-va.yaml
+esphome run waveshare-va.yaml
+```
 
 ## Documentation
 
-The [Wiki](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki)
-has the full guide:
+Documentation for this firmware lives with this repository so that it can be
+versioned together with the implementation:
 
-- **[Installation](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Installation)**: first flash, Home Assistant setup, updating.
-- **[Configuration](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Configuration)**: every substitution and every Home Assistant entity.
-- **[Audio architecture](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Audio-architecture)**: shared-bus TDM, dual microphones and local AEC.
-- **[LED ring](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/LED-ring)**: the state machine and every ring effect.
-- **[Hardware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Hardware)**: pinout, I2C map, and sourced gotchas.
-- **[Troubleshooting](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/Troubleshooting)** and **[FAQ](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va/wiki/FAQ)**.
+- **This README**: project choice, quick start, features and user-facing
+  configuration.
+- **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
+  map, measured DMA geometry, AEC reference and hardware bring-up findings.
+- **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
+- **[`base/core.yaml`](base/core.yaml)**: the annotated source of truth for the
+  current firmware behavior.
+- **[Optional TDM diagnostics](#optional-raw-tdm-diagnostics)** and
+  **[AFE runtime diagnostics](#optional-afe-runtime-diagnostics)**: temporary
+  packages for investigating the audio path.
+
+Michał's wiki documents his stock-ESPHome implementation. It remains useful for
+that project and for historical context, but it is not authoritative for this
+firmware: in particular, its two-bus audio architecture, 16 kHz playback advice
+and lack of local AEC do not apply here. Installation, configuration, LED-ring,
+troubleshooting and FAQ guides specific to this project will therefore be kept
+locally rather than linked across repositories.
 
 ## How the shared I2S bus is handled
 
@@ -234,8 +293,14 @@ cp -r skill/waveshare-esp32-s3-audio ~/.claude/skills/
 
 ## Credits
 
+- **[Michał Zaniewicz](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)**:
+  the original firmware and repository this project grew from. Its copyright
+  and license remain preserved.
+- **[esphome-audio-stack](https://github.com/n-IA-hane/esphome-audio-stack)**:
+  the external full-duplex audio and Espressif AFE integration used by this
+  firmware.
 - **[jensenbox](https://github.com/jensenbox/waveshare-esp32-s3-audio)**: the
-  ESP-master I2S layout for this board that the audio setup is based on.
+  early ESP-master I2S layout that informed this board's bring-up.
 - **ESPHome**: everything the firmware is built out of.
 - **[Home Assistant Voice PE](https://github.com/esphome/home-assistant-voice-pe)**:
   the sounds, and the phase/ducking model the LED state machine follows.
