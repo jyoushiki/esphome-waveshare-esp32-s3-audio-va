@@ -212,6 +212,8 @@ versioned together with the implementation:
 
 - **[Installation and updates](docs/INSTALLATION.md)**: complete first-flash,
   beta-channel, network, validation, update and rollback guide.
+- **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
+  Home Assistant controls, diagnostic entities and LED-ring meanings.
 - **This README**: project choice, quick start, features and user-facing
   configuration overview.
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
