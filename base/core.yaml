@@ -53,6 +53,11 @@ substitutions:
   # ---------------------------------------------------------------------------
   # Home Assistant / network
   # ---------------------------------------------------------------------------
+  # Source builds override these from their local secrets file. Keeping the
+  # core free of !secret references also permits a credential-free universal
+  # build whose Wi-Fi is provisioned after flashing.
+  wifi_ssid: ""
+  wifi_password: ""
   hidden_ssid: 'false'      # true = fast_connect, required for a hidden SSID
 
   # Media player volume clamps (the onboard amp distorts near the top).
@@ -153,8 +158,8 @@ external_components:
 
 wifi:
   id: wifi_id
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
   fast_connect: ${hidden_ssid}
   power_save_mode: none     # audio streaming hates Wi-Fi power saving
   reboot_timeout: 10min

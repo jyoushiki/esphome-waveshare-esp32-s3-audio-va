@@ -1,0 +1,25 @@
+# Universal release build. This file contains no personal credentials and is
+# compiled once for distribution as a factory image.
+packages:
+  core: !include ../base/core.yaml
+
+substitutions:
+  name: waveshare-voice
+  friendly_name: "Waveshare Voice"
+
+esphome:
+  # A single image can be installed on multiple boards without hostname
+  # collisions. Source builds remain free to use an exact personal name.
+  name_add_mac_suffix: true
+  project:
+    name: jyoushiki.waveshare-voice
+    version: "dev"
+
+# Remove the empty compile-time network from the core. Improv Serial supplies
+# and persists the end user's actual credentials after the first USB flash.
+wifi:
+  ssid: !remove
+  password: !remove
+  fast_connect: !remove
+
+improv_serial:

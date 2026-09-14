@@ -16,6 +16,10 @@ substitutions:
   name: waveshare-voice
   friendly_name: "Waveshare Voice"
 
+  # Source builds obtain Wi-Fi credentials from this local secrets file.
+  wifi_ssid: !secret wifi_ssid
+  wifi_password: !secret wifi_password
+
   # Onboard amplifier volume clamps. The little speaker distorts near the top,
   # so the media player is limited to this window (0.0 - 1.0).
   volume_min: '0.4'
