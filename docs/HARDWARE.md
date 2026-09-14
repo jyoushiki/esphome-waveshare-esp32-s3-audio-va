@@ -54,8 +54,9 @@ psram:
 | Boot button | GPIO0 | Input, active low |
 | Reset button | CHIP_PU/EN | Hardware reset |
 
-Key 1 raises volume, Key 2 toggles play/pause and Key 3 lowers volume. Boot
-toggles microphone privacy mute after the application has started. The three
+Key 1 raises volume, Key 2 stops active ringing or otherwise toggles
+play/pause, and Key 3 lowers volume. Boot toggles microphone privacy mute after
+the application has started. The three
 expander key inputs have 10 kΩ hardware pull-ups and do not require internal
 pull resistors. See the labelled board image in the
 [usage guide](USAGE.md#physical-controls).

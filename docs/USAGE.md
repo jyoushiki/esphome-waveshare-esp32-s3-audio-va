@@ -13,7 +13,7 @@ Home Assistant may add.
 | Board button | Action |
 |---|---|
 | Key 1 | Raise media-player volume by 5% |
-| Key 2 | Toggle media playback between play and pause |
+| Key 2 | Stop an active timer/ring request; otherwise toggle media play/pause |
 | Key 3 | Lower media-player volume by 5% |
 | Boot | Toggle microphone privacy mute |
 
@@ -144,3 +144,7 @@ In Home Assistant their generated action names include the ESPHome node name,
 for example `esphome.waveshare_voice_start_ringing` and
 `esphome.waveshare_voice_stop_ringing`. The ringing safety timeout remains 15
 minutes, and saying an enabled wake word also stops it.
+
+Key 2 provides a physical stop control for both voice timers and external ring
+requests. This remains available while the microphone is muted; when nothing is
+ringing, the button keeps its normal media play/pause function.

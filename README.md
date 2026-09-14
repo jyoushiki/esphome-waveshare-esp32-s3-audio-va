@@ -107,8 +107,9 @@ larger communications platform.
   breathe, wipe, scan, spinner, comet, twinkle, fireworks, fire, rainbows.
 - **Timers**: set by voice, with an on-ring countdown and a "Next timer" sensor
   in HA. Home Assistant automations can invoke the same local ringing behaviour.
-- **Buttons**: Key 1 raises volume, Key 2 toggles play/pause, Key 3 lowers
-  volume, and Boot toggles the persistent microphone privacy mute.
+- **Buttons**: Key 1 raises volume, Key 2 stops an active timer/ring request or
+  otherwise toggles play/pause, Key 3 lowers volume, and Boot toggles the
+  persistent microphone privacy mute.
 - **Boot chime**: a short "ready" sound once the device connects to HA
   (toggleable, and it also settles the amp so the ring boots silent).
 - **Tunable live from HA**: microphone mute, post-AFE mic gain, LED brightness

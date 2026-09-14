@@ -47,7 +47,7 @@ substitutions:
   # is why the "schematic says the keys are on 12" folklore is ignored here.
   amp_ctrl: '8'             # PA_EN / amplifier enable - ACTIVE HIGH
   key1_exio: '9'            # volume up  (active low, 10k hardware pull-up)
-  key2_exio: '10'           # play/pause
+  key2_exio: '10'           # stop ringing, otherwise play/pause
   key3_exio: '11'           # volume down
 
   # ---------------------------------------------------------------------------
@@ -1331,7 +1331,13 @@ binary_sensor:
       inverted: true
     filters: *button_debounce
     on_press:
-      - media_player.toggle: external_media_player
+      - if:
+          condition:
+            switch.is_on: timer_ringing
+          then:
+            - switch.turn_off: timer_ringing
+          else:
+            - media_player.toggle: external_media_player
 
   - platform: gpio
     id: volume_down_button

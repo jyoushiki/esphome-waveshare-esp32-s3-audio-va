@@ -63,7 +63,8 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   after the chime becomes active, retaining fast speech while suppressing most
   of the prompt through AEC.
 - Volume buttons use 5% steps. Key 1 raises volume, Key 2 toggles play/pause and
-  Key 3 lowers volume; the GPIO entities themselves are internal.
+  Key 3 lowers volume; while ringing, Key 2 stops the ring instead. The GPIO
+  entities themselves are internal.
 - Normal logging starts at INFO while DEBUG remains compiled for temporary
   runtime selection. Production I2C scanning and idle text-sensor polling are
   disabled.
