@@ -254,7 +254,7 @@ correctly pitched responses, music, announcements and simultaneous
 music/Assist operation.
 
 For temporary per-slot or AFE runtime telemetry, use the diagnostic packages
-described in the [README](../README.md#optional-raw-tdm-diagnostics).
+described in [Diagnostic tools](DIAGNOSTICS.md).
 
 ## Sources
 

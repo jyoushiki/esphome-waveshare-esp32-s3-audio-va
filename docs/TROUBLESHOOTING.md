@@ -9,13 +9,15 @@ Assist pipeline.
 
 Before changing audio settings:
 
-1. Record the ESPHome version and the firmware reference or commit SHA.
-2. Confirm that `waveshare-va.yaml` fetches this repository, not the original
-   stock-ESPHome project.
-3. After changing a branch, tag, commit or external-component revision, run a
-   clean build so cached sources cannot mix revisions.
-4. Capture logs from boot through the failure.
-5. Reproduce the problem twice before and twice after a change when possible.
+1. Record the installed firmware version or release tag and whether it is a
+   precompiled or source-built installation.
+2. Capture logs from boot through the failure.
+3. Reproduce the problem twice before and twice after a change when possible.
+
+For a source build, also record the ESPHome version, confirm that
+`waveshare-va.yaml` fetches this repository rather than the original
+stock-ESPHome project, and clean after changing a branch, tag, commit or
+external-component revision:
 
 ```bash
 esphome clean waveshare-va.yaml
@@ -27,6 +29,7 @@ esphome run waveshare-va.yaml
 | Symptom | Check first |
 |---|---|
 | Build ends with `Killed signal terminated program cc1plus` | Build-host RAM or swap |
+| Firmware update is absent or fails | Selected update channel and HTTPS access to `jyoushiki.github.io` |
 | Ring keeps pulsing red | Wi-Fi or Home Assistant API connectivity |
 | Wake word does nothing | Microphone mute and enabled wake-word model |
 | Chime plays but Assist does not answer | Assist pipeline, STT capture and network logs |
@@ -41,8 +44,9 @@ During startup the ring shows a rainbow. Once initialization is complete, a
 pulsing red ring means that Wi-Fi or the Home Assistant native API is not
 connected.
 
-- Recheck the current `wifi_ssid` and `wifi_password` in the local
-  `secrets.yaml` used by this build.
+- For a precompiled installation, reconnect over USB and use ESPHome Web to
+  confirm or replace the Improv Wi-Fi credentials. For a source build, recheck
+  `wifi_ssid` and `wifi_password` in its local `secrets.yaml`.
 - Verify that the IoT network can reach Home Assistant and that TCP 6053 is not
   blocked between Home Assistant/ESPHome and the board.
 - Check whether Home Assistant discovered the ESPHome device and assigned an
@@ -120,11 +124,11 @@ uses a 48 kHz, four-slot, 16-bit TDM bus and resamples speech sources as needed.
 The hardware speaker must also declare 48 kHz; leaving it at 16 kHz makes
 playback run three times too fast and sound correspondingly high-pitched.
 
-With an unmodified published build, first clean the build directory and verify
-that the core and external audio components came from the intended revisions.
-Each external component must be provided by one source entry only. If the issue
-persists, report the source revisions and the audio-stack configuration printed
-at boot; do not compensate by changing a file's declared sample rate.
+With a precompiled release, report the installed version and audio-stack
+configuration printed at boot. With a source build, first clean the build
+directory and verify that the core and external audio components came from the
+intended revisions. Each external component must be provided by one source
+entry only. Do not compensate by changing a file's declared sample rate.
 
 ## Microphone audio is low, metallic or discontinuous
 
@@ -138,14 +142,14 @@ reporting excessive decimal precision for a human-spoken sample.
 3. If necessary, repeat with `AFE processing` off for a raw-path comparison.
 4. Return both switches to on after the test.
 
-The bundled [AFE runtime diagnostics](../README.md#optional-afe-runtime-diagnostics) expose
+The bundled [AFE runtime diagnostics](DIAGNOSTICS.md#afe-runtime-diagnostics) expose
 input/output level plus processing misses, input/output ring drops, feed
 rejections and fetch timeouts. Compare counter **changes during the failing
 interaction**, rather than treating a small startup value as proof of a runtime
 failure. Healthy operation should not continuously increase these counters.
 
 For channel-level diagnosis, the optional
-[TDM diagnostics](../README.md#optional-raw-tdm-diagnostics) expose the two microphone
+[TDM diagnostics](DIAGNOSTICS.md#raw-tdm-levels) expose the two microphone
 slots, the analog playback reference and the unused slot. These packages add
 work to the real-time audio path; remove them from the device YAML after the
 test.
@@ -175,7 +179,8 @@ counters. For speaker-only noise, collect media-player and audio-stack logs.
 
 `cc1plus` being killed during compilation means the computer or Home Assistant
 host ran out of memory; the firmware was never installed. Build on a machine
-with more RAM or swap. See [Build and install](INSTALLATION.md#4-build-and-install).
+with more RAM or swap, or install the recommended precompiled image instead.
+See [Advanced: build from the YAML source](INSTALLATION.md#advanced-build-from-the-yaml-source).
 
 A board reboot is different. Capture the reset reason and logs before the boot
 banner, and note whether it happens at idle, on wake detection, while starting
@@ -184,10 +189,34 @@ too quickly. Repeated allocation failures or watchdog messages should be
 reported with the exact commit rather than worked around by reducing arbitrary
 audio buffers.
 
+## A managed firmware update is not offered or fails
+
+The update entities are part of the precompiled image only. A source-built
+installation is updated by rebuilding it through ESPHome.
+
+For a precompiled installation:
+
+- Leave exactly one channel enabled: **Stable firmware** for normal releases or
+  **Beta firmware** for public pre-releases.
+- Confirm that the board can resolve and reach `jyoushiki.github.io` over HTTPS.
+- Check the installed version in the device information and compare it with the
+  selected channel's announced release.
+- Remember that the updater compares versions for equality, not order. Enabling
+  both channels can make an older stable version appear available on a newer
+  beta; this is not a request to downgrade.
+
+The managed updater downloads the `.ota.bin` automatically. The
+`.factory.bin` asset is for installation or recovery over USB and should not be
+manually supplied to OTA. If an update leaves the device unreachable, collect
+serial logs and reinstall the known-good factory image through ESPHome Web
+without erasing saved data first.
+
 ## What to include in an issue
 
-- Firmware commit SHA, ESPHome version and board revision if known.
-- Package and external-component references.
+- Installed firmware version or tag, installation method and board revision if
+  known.
+- For source builds, ESPHome version plus package and external-component
+  references.
 - Cold boot, Reset, OTA update or runtime sequence that preceded the failure.
 - Exact reproduction steps and whether music was playing.
 - Logs from before the first symptom through recovery or reboot.

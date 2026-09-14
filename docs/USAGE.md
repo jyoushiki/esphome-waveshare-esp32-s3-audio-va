@@ -81,6 +81,21 @@ be repaired later in the pipeline. For objective comparison, use the temporary
 WAV-recording procedure in the
 [installation guide](INSTALLATION.md#temporarily-record-the-audio-received-by-assist).
 
+## Firmware update entities
+
+The recommended precompiled installation adds two diagnostic entities:
+
+| Entity | Default availability | Purpose |
+|---|---|---|
+| Stable firmware | Enabled | Follows normal GitHub releases |
+| Beta firmware | Disabled | Follows public GitHub pre-releases |
+
+Use only one channel at a time. Normal users leave Stable firmware enabled;
+beta testers disable it and enable Beta firmware from Home Assistant's entity
+settings. See [Managed precompiled updates](INSTALLATION.md#managed-precompiled-updates)
+for the update behavior and channel limitation. Source/YAML builds use
+ESPHome's normal rebuild-and-upload workflow and do not expose these entities.
+
 ## Advanced and diagnostic entities
 
 Some entities are disabled by default in Home Assistant. Enable them from the

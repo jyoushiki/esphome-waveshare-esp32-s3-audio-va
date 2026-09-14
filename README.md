@@ -20,9 +20,11 @@ speech front end.
 > [!IMPORTANT]
 > **Release status:** `v1.1.0` is the last stable tag, using the earlier 16 kHz
 > audio layout. Development of the next release happens on the moving `dev`
-> branch and contains the 48 kHz TDM architecture described below. Each beta
-> round will use a deliberately selected `beta` snapshot of `dev`; pin its
-> commit SHA if an installation must remain exactly reproducible afterwards.
+> branch and contains the 48 kHz TDM architecture described below. Public beta
+> snapshots will be published as GitHub pre-releases; normal releases are the
+> stable channel. There is no separate beta branch. The precompiled assets
+> described below begin with that forthcoming release series; the historical
+> `v1.1.0` release does not contain them.
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
@@ -145,82 +147,40 @@ measured DMA geometry and validation results.
 > [![Star this repo](https://img.shields.io/github/stars/jyoushiki/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
 
 
-## Quick start
+## Installation
 
-> Requires **ESPHome 2026.8.0+**, ESP-IDF, and the board's octal PSRAM.
+The **precompiled release is the default and recommended route**. It can be
+installed through ESPHome Web, receives Wi-Fi credentials afterwards and
+supports managed stable or beta updates without ESPHome Device Builder.
 
-1. In Home Assistant's ESPHome Device Builder directory, provide a
-   `secrets.yaml` containing `wifi_ssid` and `wifi_password`. You can copy
-   `secrets.example.yaml` as a starting point. Never commit the populated file.
-2. Copy only **`waveshare-va.yaml`** next to it and edit the `substitutions:` at
-   the top (device name, timezone and volume limits).
-3. Choose the firmware channel in its `packages:` block:
-
-   - Keep `ref: v1.1.0` for the immutable stable release. It uses the previous
-     16 kHz architecture and does not contain the current beta improvements.
-   - Once a beta round is announced, anyone who wants to test pre-release
-     firmware can use the public `beta` branch. It is advanced deliberately
-     from `dev` and then held stable for that test round; before an announcement
-     it may still lag behind `dev`:
-
-     ```yaml
-     packages:
-       core:
-         url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va
-         ref: beta
-         files:
-           - base/core.yaml
-         refresh: always
-     ```
-
-     Do not point a tester at the rolling `dev` branch. Once a test setup is
-     known-good, replace `beta` with its commit SHA if you need to preserve that
-     exact build after the next beta round begins.
-4. **First flash over USB**, then updates go wireless:
-   ```
-   esphome run waveshare-va.yaml
-   ```
-   Or drop both files into the ESPHome dashboard's `/config/esphome/` and hit
-   Install.
-5. In Home Assistant: the new ESPHome device appears, open **Configure** and
-   assign an Assist pipeline.
-6. Say "OK Nabu"; the ring should go violet after it is detected. Because it
-   is the first configured model, ESPHome enables only this model on the first
-   boot. `Hey Jarvis`, `Alexa` and `Hey Mycroft` are also installed and can be
-   enabled from Home Assistant. ESPHome saves and restores each model's enabled
-   state in flash.
-
-After changing between a tag, branch or commit, clean the ESPHome build files
-once so both the package and generated build state are refreshed:
-
-```
-esphome clean waveshare-va.yaml
-esphome run waveshare-va.yaml
-```
+See **[Installation and updates](docs/INSTALLATION.md)** for the illustrated
+first-flash procedure, Wi-Fi provisioning, update channels and recovery. The
+same guide documents the optional YAML route for developers and users who need
+compile-time substitutions, diagnostic packages or firmware modifications.
 
 ## Documentation
 
 Documentation for this firmware lives with this repository so that it can be
 versioned together with the implementation:
 
-- **This README**: project choice, quick start, features and user-facing
+- **This README**: project choice, features and user-facing
   configuration overview.
-- **[Installation and updates](docs/INSTALLATION.md)**: complete first-flash,
-  beta-channel, network, validation, update and rollback guide.
+- **[Installation and updates](docs/INSTALLATION.md)**: precompiled first-flash,
+  stable/beta OTA channels, advanced source builds, network, validation and
+  rollback.
 - **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
   Home Assistant controls, diagnostic entities and LED-ring meanings.
 - **[Public beta testing](docs/BETA_TESTING.md)**: basic and extended test
   matrices plus a consistent results template.
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: symptom-led checks for builds,
   connectivity, wake words, capture, playback and runtime audio faults.
+- **[Diagnostic tools](docs/DIAGNOSTICS.md)**: optional raw-TDM and AFE-runtime
+  packages for investigating the audio path.
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
   map, measured DMA geometry, AEC reference and hardware bring-up findings.
 - **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
 - **[`base/core.yaml`](base/core.yaml)**: the annotated source of truth for the
   current firmware behavior.
-- **[Optional TDM diagnostics](#optional-raw-tdm-diagnostics)** and
-  **[AFE runtime diagnostics](#optional-afe-runtime-diagnostics)**: temporary
-  packages for investigating the audio path.
 
 Michał's wiki documents his stock-ESPHome implementation. It remains useful for
 that project and for historical context, but it is not authoritative for this
@@ -249,15 +209,18 @@ playback remains at 48 kHz. The annotated configuration is in `base/core.yaml`.
 ## Repository layout
 
 ```
-waveshare-va.yaml          # YOUR config: copy + edit this (pulls base/core.yaml from the fork)
-secrets.example.yaml       # copy to secrets.yaml
+prebuilt/
+  waveshare-va.factory.yaml # credential-free universal release wrapper
+waveshare-va.yaml           # optional advanced source-build configuration
+secrets.example.yaml        # source builds: copy to secrets.yaml
 base/
-  core.yaml                # the always-on core package fetched by waveshare-va.yaml
+  core.yaml                 # shared firmware implementation
 docs/
   INSTALLATION.md          # install, update, rollback and WAV capture
   USAGE.md                 # controls, entities and LED states
   BETA_TESTING.md          # public beta test matrix and report format
   TROUBLESHOOTING.md       # symptom-led diagnosis
+  DIAGNOSTICS.md           # opt-in raw-TDM and AFE runtime instrumentation
   HARDWARE.md              # pinout, I2C map and audio architecture
 scripts/
   validate.py              # offline YAML check (syntax, substitutions, duplicate ids)
@@ -271,11 +234,13 @@ edit: mic gain, LED brightness, the ring animation per assistant phase
 (Listening / Thinking / Replying effect), wake-word sensitivity, wake sound,
 boot sound, microphone mute.
 
-What lives in `waveshare-va.yaml`:
+The precompiled firmware uses the documented defaults. The following
+compile-time substitutions are available only when using the optional source
+build through `waveshare-va.yaml`:
 
 | Substitution | Default | What it does |
 |---|---|---|
-| `name` / `friendly_name` | `waveshare-va` / `Waveshare Voice` | Device name. Changing `name` re-creates every entity in HA. |
+| `name` / `friendly_name` | `waveshare-voice` / `Waveshare Voice` | Device name. Changing `name` re-creates every entity in HA. |
 | `volume_min` / `volume_max` | `0.4` / `0.8` | Media player clamps, because the onboard amp distorts near the top. |
 | `hidden_ssid` | `false` | `true` enables `fast_connect` for a hidden SSID. |
 | `boot_sound_file` | repo `startup.mp3` | The connect-to-HA chime. Any URL or local MP3/FLAC/WAV. |
@@ -283,48 +248,6 @@ What lives in `waveshare-va.yaml`:
 
 Pins and the audio format are substitutions too (in `base/core.yaml`), but you
 should not need them unless you are porting to another board.
-
-## Optional raw TDM diagnostics
-
-The normal firmware omits continuous raw-bus level monitoring. Marking an
-ESPHome entity `disabled_by_default` hides it in Home Assistant, but does not
-stop the device from sampling it inside the audio task. When investigating the
-microphones or AEC reference, add
-[`diagnostics/tdm-levels.yaml`](diagnostics/tdm-levels.yaml) as a second package:
-
-```yaml
-packages:
-  core: !include base/core.yaml
-  tdm_diagnostics: !include diagnostics/tdm-levels.yaml
-```
-
-For a remotely fetched Git package, add `diagnostics/tdm-levels.yaml` to the
-same `files:` list as `base/core.yaml` and use the same repository revision.
-The optional entities report slots 0 and 2 for the physical microphones, slot
-1 for the analog playback reference and slot 3 for the unused/noise-floor
-channel. Remove the package again after diagnosis to eliminate the periodic RMS
-work.
-
-## Optional AFE runtime diagnostics
-
-For intermittent low, metallic or discontinuous processed audio, include
-[`diagnostics/afe-runtime.yaml`](diagnostics/afe-runtime.yaml) instead. It
-publishes the AFE input/output levels and accumulated output-miss, ring-drop,
-feed-rejection and fetch-timeout counters to Home Assistant, while also logging
-short-interval performance telemetry:
-
-```yaml
-packages:
-  core: !include base/core.yaml
-  afe_runtime_diagnostics: !include diagnostics/afe-runtime.yaml
-```
-
-Healthy operation should leave the error counters unchanged after startup.
-Remove this package after diagnosis because its DEBUG logging and telemetry add
-work to the real-time audio path.
-
-For a remotely fetched Git package, add `diagnostics/afe-runtime.yaml` to the
-same `files:` list as `base/core.yaml` and select both files under `packages:`.
 
 ## Credits
 

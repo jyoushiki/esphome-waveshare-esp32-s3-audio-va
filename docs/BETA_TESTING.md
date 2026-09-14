@@ -5,18 +5,22 @@ purpose of the beta channel is to validate one frozen firmware and dependency
 snapshot on more boards and Home Assistant installations before it becomes a
 stable release.
 
-Use the `beta` branch only after a beta round is announced. Follow the
-[installation guide](INSTALLATION.md#choose-a-firmware-channel) to install it.
-Do not substitute `dev`: it moves during development and makes results difficult
-to reproduce.
+Betas are published as GitHub pre-releases, not through a `beta` branch. The
+recommended path is to install the precompiled image or select the managed Beta
+firmware update channel. Follow the
+[installation guide](INSTALLATION.md#recommended-install-a-precompiled-release).
+Do not substitute `dev`: it moves during development and makes results
+difficult to reproduce. Source-build testers should pin the announced
+pre-release tag.
 
 ## Before testing
 
 Record:
 
 - the beta name or announcement;
-- the firmware commit SHA stated in that announcement;
-- ESPHome and Home Assistant versions;
+- the installed version or pre-release tag;
+- installation method: precompiled or source build;
+- Home Assistant version, plus ESPHome version for a source build;
 - board revision, if printed on the PCB;
 - Assist pipeline, STT and TTS providers;
 - enabled wake-word model or models;
@@ -26,6 +30,11 @@ Record:
 Start with the normal beta configuration. Do not enable raw TDM or AFE runtime
 diagnostics unless a test fails or the beta announcement asks for them.
 
+On a precompiled installation, disable the **Stable firmware** entity and
+enable **Beta firmware**. Leave only the beta entity enabled: the updater tests
+version equality rather than semantic ordering, so enabling both channels can
+make an older stable release appear as an available update.
+
 ## Basic test
 
 This short sequence is the minimum useful beta report:
@@ -33,6 +42,7 @@ This short sequence is the minimum useful beta report:
 | Test | Expected result |
 |---|---|
 | Cold power-on | Board joins Wi-Fi and Home Assistant; startup sound has normal speed and pitch |
+| Managed update | Beta firmware detects an announced pre-release, installs it and returns online with Wi-Fi and saved settings intact |
 | Wake word | An enabled wake word is detected at normal speaking distance |
 | Short command | Capture starts, ends naturally and produces the correct response |
 | Long command | The complete sentence reaches STT without losing its beginning or ending early |
@@ -140,7 +150,7 @@ only for an intentional comparison:
 3. complete AFE bypass only if the first comparison is insufficient;
 4. return both switches to on.
 
-Add the [AFE runtime diagnostics](../README.md#optional-afe-runtime-diagnostics)
+Add the [AFE runtime diagnostics](DIAGNOSTICS.md#afe-runtime-diagnostics)
 only when investigating intermittent processing. Report whether counters
 increase during the failure, not merely their startup values. Remove diagnostic
 packages and Home Assistant WAV recording after testing.
@@ -150,8 +160,9 @@ packages and Home Assistant WAV recording after testing.
 A successful report is valuable too. Use this compact format:
 
 ```text
-Beta / firmware SHA:
-ESPHome version:
+Pre-release tag / installed version:
+Installation method:
+ESPHome version (source build only):
 Home Assistant version:
 Board revision:
 Assist pipeline (STT/TTS):

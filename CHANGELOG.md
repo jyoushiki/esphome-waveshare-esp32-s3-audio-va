@@ -30,8 +30,17 @@ sparse-DMA contribution, pinned to the hardware-tested commit
 - `start_ringing` and `stop_ringing` API actions, allowing Home Assistant
   automations to reuse the local timer sound, ducking and LED behaviour.
 - Project-owned installation, usage, troubleshooting and hardware guides,
-  including a labelled button image and temporary Home Assistant WAV-capture
-  instructions.
+  including a labelled button image, an illustrated ESPHome Web installation
+  path and temporary Home Assistant WAV-capture instructions.
+- A credential-free universal factory image with MAC-suffixed device names and
+  Improv Serial Wi-Fi provisioning. It makes precompiled installation the
+  recommended path instead of requiring every user to build ESP-IDF locally.
+- Managed Stable firmware and Beta firmware update entities for precompiled
+  installations, backed by release manifests on GitHub Pages. Normal releases
+  publish both channels; pre-releases advance only the public beta channel.
+- A release workflow that builds factory and OTA images, publishes checksums,
+  attaches the artifacts to GitHub Releases and deploys self-contained channel
+  manifests.
 
 ### Changed
 
@@ -70,6 +79,9 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   disabled.
 - This repository is documented as an independent firmware project rather than
   a drop-in variant of the original stock-ESPHome implementation.
+- Public beta snapshots are distributed as GitHub pre-releases rather than a
+  long-lived beta branch. Source/YAML builds remain available as an advanced
+  option for compile-time substitutions, diagnostics and firmware development.
 
 ### Fixed
 
@@ -118,6 +130,10 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   38 KiB of DMA-capable memory after I2S enable and a 31 KiB largest internal
   block. During exercised concurrent workloads, sampled minima remained around
   15 KiB DMA-capable and 13 KiB for the largest internal block.
+- A universal image was installed onto an erased second board, provisioned over
+  Improv Serial, discovered by Home Assistant and upgraded through the managed
+  HTTP OTA channel. Wi-Fi credentials and saved state survived the update; wake
+  word, Assist, media playback and reboot behavior remained correct afterwards.
 
 ---
 
