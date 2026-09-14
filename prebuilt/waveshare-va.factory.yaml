@@ -13,7 +13,15 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: jyoushiki.waveshare-voice
-    version: "dev"
+    # The release workflow replaces this exact value with the GitHub tag.
+    version: dev
+
+# Let ESPHome Device Builder offer to adopt the provisioned device. The public
+# thin configuration remains editable, while this factory-only wrapper is not
+# carried into later source builds.
+dashboard_import:
+  package_import_url: github://jyoushiki/esphome-waveshare-esp32-s3-audio-va/waveshare-va.yaml@main
+  import_full_config: false
 
 # Remove the empty compile-time network from the core. Improv Serial supplies
 # and persists the end user's actual credentials after the first USB flash.
