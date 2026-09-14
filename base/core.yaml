@@ -161,10 +161,10 @@ psram:
   ignore_not_found: false
 
 # Full-duplex TDM ownership plus Espressif's software Audio Front End. This
-# branch builds on v2026.9.2 and adds direction-specific sparse TDM DMA.
+# tested fork revision builds on v2026.9.2 and adds direction-specific sparse
+# TDM DMA (upstream PR #14).
 external_components:
-  - source: github://jyoushiki/esphome-audio-stack@feature/tdm-sparse-dma
-    refresh: 0s
+  - source: github://jyoushiki/esphome-audio-stack@b365e91a7930181b000f0849677243e4b1ad1dc0
     components: [esp_audio_stack, esp_afe]
 
 wifi:

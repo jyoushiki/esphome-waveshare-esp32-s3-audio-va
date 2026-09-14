@@ -168,9 +168,12 @@ The validated DMA operating point is:
 
 The audio stack initially calculates six descriptors and raises the count to
 eight to retain its normal processor-frame margin. The 16-bit sparse RX/TX
-geometry leaves approximately 50 KiB of DMA-capable memory free after I2S is
-enabled on the validated build. Earlier 32-bit framing consumed twice as much
-DMA memory and made that margin impractical; it was not a codec requirement.
+geometry left approximately 38 KiB of DMA-capable memory free after I2S was
+enabled in the final instrumented build. Under the exercised concurrent
+music/Assist workload, the sampled minima remained around 15 KiB DMA-capable
+and 13 KiB for the largest internal block. Earlier 32-bit framing consumed
+twice as much DMA memory and made that margin impractical; it was not a codec
+requirement.
 
 ## Memory layout
 
@@ -179,12 +182,16 @@ run safely from external memory. The firmware therefore:
 
 - reserves 32 KiB of internal RAM;
 - prefers PSRAM for ordinary allocations larger than 1 KiB;
-- places supported audio, mixer, decoder and wake-word task stacks in PSRAM;
-- places large audio buffers and supported AFE rings in PSRAM.
+- places large audio buffers, supported AFE rings and media-decoder task stacks
+  in PSRAM;
+- leaves the latency-sensitive audio-stack, mixer, resampler and wake-word task
+  stacks in their default internal-RAM placement. The media reader also remains
+  internal because ESPHome's HTTP client requires it there.
 
-These settings are part of the working audio architecture. Removing them may
-allow the firmware to boot but fail later when Assist starts or while media and
-announcements run together.
+This split was validated with wake-word, Assist, music and announcement
+transitions. Moving every task in either direction would trade realtime
+behavior against the contiguous internal heap needed when both media pipelines
+are active.
 
 ## Speaker and amplifier
 

@@ -4,8 +4,8 @@
 
 Development towards the next public beta and stable release. It requires
 ESPHome 2026.8.0 or newer. The firmware currently uses the audio-stack fork's
-`feature/tdm-sparse-dma` branch; the beta snapshot must pin that dependency to
-an immutable revision before publication.
+sparse-DMA contribution, pinned to the hardware-tested commit
+`b365e91a7930181b000f0849677243e4b1ad1dc0` while upstream PR #14 is pending.
 
 ### Added
 
@@ -41,9 +41,10 @@ an immutable revision before publication.
 - DMA descriptor sizing is automatic again. With sparse 16-bit RX/TX transfers,
   the stack selects eight 512-frame descriptors, retains its normal processor
   margin and leaves substantial internal DMA-capable memory available.
-- Large ordinary allocations prefer PSRAM, reserving internal memory for DMA
-  and code that must remain internal. Supported audio, mixer, decoder and
-  wake-word stacks and buffers are also moved to PSRAM.
+- Large buffers, AFE rings and media-decoder stacks use PSRAM. Latency-sensitive
+  audio-stack, mixer, resampler and wake-word tasks retain their default
+  internal-RAM placement; this split was validated under concurrent
+  music/Assist workloads after 16-bit sparse DMA recovered sufficient SRAM.
 - Both physical microphones and the analog playback reference now use 30 dB
   ES7210 gain. Keeping their relationship aligned improves AEC without using
   analog gain as a user-facing volume control.
@@ -73,10 +74,8 @@ an immutable revision before publication.
 - Home Assistant API disconnection no longer reboots an otherwise healthy
   device. Alarm times are validated through one bounded `HH:MM` path before
   being stored or used.
-- Mixer and audio-pipeline task stacks avoid internal-memory fragmentation that
-  could reboot the device or prevent playback under a full Assist/media load.
-  The announcement resampler remains internal because moving it to PSRAM caused
-  intermittent first-announcement crackle in hardware tests.
+- The announcement resampler uses its default internal stack; moving it to
+  PSRAM caused intermittent first-announcement crackle in hardware tests.
 - Physical buttons use 20 ms press/release debounce filters.
 - The amplifier follows actual speaker ownership and is no longer exposed as a
   manual Home Assistant switch.
@@ -106,8 +105,10 @@ an immutable revision before publication.
   buttons have been exercised on hardware.
 - AFE runtime error counters remained stable during normal voice-assistant
   testing after their initial startup values.
-- The validated 16-bit build leaves approximately 50 KiB of DMA-capable memory
-  after I2S enable, with a largest contiguous internal block of about 31 KiB.
+- With the final task placement, the instrumented build left approximately
+  38 KiB of DMA-capable memory after I2S enable and a 31 KiB largest internal
+  block. During exercised concurrent workloads, sampled minima remained around
+  15 KiB DMA-capable and 13 KiB for the largest internal block.
 
 ---
 

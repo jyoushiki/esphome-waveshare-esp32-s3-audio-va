@@ -41,7 +41,7 @@ other.
 | Physical playback | 48 kHz, four 16-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
 | Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
 | Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
-| Dependencies | External `esphome-audio-stack`, currently including a pending sparse-DMA contribution | Pure stock ESPHome; no external audio component |
+| Dependencies | External `esphome-audio-stack`, with the pending sparse-DMA contribution pinned to a tested revision | Pure stock ESPHome; no external audio component |
 | Main advantage | Better use of this board's audio hardware, echo handling and 48 kHz output | Simpler build, fewer moving parts and easier alignment with stock ESPHome |
 | Main tradeoff | More code, RAM pressure, build time and hardware-specific complexity | Lower playback bandwidth and no use of the board's analog reference for AEC |
 
@@ -129,13 +129,14 @@ carries the single speaker slot. With the 16-bit framing, the stack can retain
 its normal processor margin and select the DMA geometry automatically. The
 validated build uses eight 512-frame descriptors without exhausting the
 ESP32-S3's internal DMA-capable RAM.
-Large ordinary allocations prefer the board's PSRAM so Voice Assistant does
-not compete with I2S DMA.
+Large buffers and media-decoder stacks use the board's PSRAM so Voice Assistant
+does not compete with I2S DMA, while latency-sensitive task stacks retain their
+default internal-RAM placement.
 
 The tradeoff is additional rate-conversion work and reliance on the fork's
-`feature/tdm-sparse-dma` branch until the change is available in an upstream
-release. See [Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks)
-for the measured DMA geometry and validation results.
+sparse-DMA revision until the change is available in an upstream release. See
+[Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks) for the
+measured DMA geometry and validation results.
 
 > [!TIP]
 > ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
