@@ -300,11 +300,7 @@ esp_audio_stack:
       use_mclk: true
       no_dac_ref: true
 
-  # Keep the realtime path out of scarce internal RAM where the component
-  # supports it. DMA and ESP-SR still reserve the internal memory they need.
-  # Let the stack size DMA from the 16-bit sparse RX/TX geometry and retain its
-  # normal processor margin; the selected values are verified in boot logs.
-  audio_task_stack_in_psram: true
+  # Move larger non-DMA audio buffers to PSRAM; DMA remains internal.
   buffers_in_psram: true
   audio_effects:
     rate_cvt_complexity: 1
@@ -369,9 +365,6 @@ speaker:
     id: mixing_speaker
     output_speaker: i2s_audio_speaker
     num_channels: 1
-    # The 4 KiB mixer task is created on demand. Keep its stack in PSRAM so a
-    # temporarily fragmented internal heap cannot make Assist playback fail.
-    task_stack_in_psram: true
     source_speakers:
       - id: announcement_mixing_input
         timeout: never
@@ -385,7 +378,6 @@ speaker:
   - platform: resampler
     id: media_resampling_speaker
     output_speaker: media_mixing_input
-    task_stack_in_psram: true
 
 media_player:
   - platform: speaker
@@ -467,7 +459,6 @@ media_player:
 micro_wake_word:
   id: mww
   microphone: i2s_mics
-  task_stack_in_psram: true
   stop_after_detection: false
   models:
     - model: https://github.com/esphome/micro-wake-word-models/raw/${mww_models_ref}/models/v2/okay_nabu.json
