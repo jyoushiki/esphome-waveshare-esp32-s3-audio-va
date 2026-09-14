@@ -2,6 +2,11 @@ name: Release firmware
 
 on:
   workflow_dispatch:
+  # Allows an explicit validation build from a non-default branch without
+  # running this expensive firmware build on every development commit.
+  push:
+    tags:
+      - "firmware-build-*"
   release:
     types: [published]
 
