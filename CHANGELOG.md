@@ -335,8 +335,7 @@ Bugs carried over from the config this started as:
   documented defaults, instead of literals scattered through the file.
 - `${mic_channel_${which_mic}}` nested-substitution trickery replaced with two
   plainly named knobs: `mic_channel` (the I2S slot) and `mic_va_channel` (the
-  index handed to Assist). These are genuinely different things and the old
-  names implied they were the same one.
+  index handed to Assist). The old names implied these were the same channel.
 - Dropped dead substitutions (`i2s_bits_per_sample`, `i2s_mode_speaker`,
   `rtc_int`, `mic_channel_2`) and the now-unused `mic_gain_saved` global.
 - Timezone is a `posix_timezone` substitution rather than a hard-coded `UTC0`.

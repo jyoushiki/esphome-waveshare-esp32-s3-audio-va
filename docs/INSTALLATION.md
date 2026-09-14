@@ -13,7 +13,7 @@ install future releases without compiling ESPHome.
 | Method | Recommended for | Requirements | Compile-time customization |
 |---|---|---|---|
 | Precompiled release | Almost every user | Board, USB data cable, compatible browser and Home Assistant | No; use the firmware defaults and its Home Assistant entities |
-| Source/YAML build | Developers and users who deliberately need different substitutions or firmware code | ESPHome 2026.8.0+, a sufficiently capable build host, YAML and local secrets | Yes |
+| Source/YAML build | Developers and users who need different substitutions or firmware code | ESPHome 2026.8.0+, a sufficiently capable build host, YAML and local secrets | Yes |
 
 Both methods expose the normal runtime controls in Home Assistant, including
 wake words, sensitivity, post-AFE microphone gain, microphone mute, sounds,
@@ -116,7 +116,7 @@ version can therefore be presented as an available update while the device is
 running a newer beta. Selecting only one channel avoids that ambiguity.
 
 Beta pre-releases update the beta manifest only. A normal release updates both
-manifests, so beta users naturally converge on the new stable firmware. The
+manifests, so beta users also receive the new stable firmware. The
 device downloads the appropriate `.ota.bin`, verifies its published hash,
 installs it and reboots. Wi-Fi credentials, wake-word selections and other
 saved preferences are retained.

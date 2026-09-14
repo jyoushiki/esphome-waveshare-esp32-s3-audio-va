@@ -33,9 +33,9 @@ You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
 
 ## Choosing between this project and Michał's
 
-Both projects target the same board and share the same origin, but optimize for
-different things. Neither is intended as a drop-in configuration source for the
-other.
+Both projects target the same board and share the same origin, but differ in
+audio processing and dependencies. Neither is intended as a drop-in
+configuration source for the other.
 
 | | This project | Michał's original project |
 |---|---|---|
@@ -74,15 +74,11 @@ whereas `esphome-intercom` is a broader voice and SIP/VoIP platform.
 Choose `esphome-intercom` when room-to-room calls, SIP equipment, a door station
 or Home Assistant phone routing are part of the goal; duplicating those features
 here is explicitly out of scope. Choose this project when the board should
-behave primarily as a compact Assist appliance with straightforward volume and
-media controls, multiple wake-word choices and a deliberately tailored LED
-experience.
+behave primarily as a compact Assist appliance with volume and
+media controls, multiple wake-word choices and configurable LED animations.
 
-The underlying audio gap is now intentionally small: both designs can use the
-board at 48 kHz with its two microphones, synchronized playback reference and
-local AEC. This project should therefore justify its existence through focus,
-board-specific tuning and user experience rather than by duplicating the much
-larger communications platform.
+Both designs can use the board at 48 kHz with its two microphones, synchronized
+playback reference and local AEC.
 
 ## What it does
 
@@ -100,8 +96,8 @@ larger communications platform.
   playback-reference channel feed Espressif's AFE, allowing wake-word detection
   to continue while the device is speaking or playing audio.
 - **Simultaneous music and announcements**: a mixer speaker blends the media and
-  announcement pipelines, so a doorbell announcement ducks the music instead of
-  fighting it. Both are exposed to Music Assistant.
+  announcement pipelines, so a doorbell announcement plays while the music is
+  ducked. Both are exposed to Music Assistant.
 - **LED ring**: one state machine drives it. Boot, no-Wi-Fi, no-HA, listening,
   thinking, replying, timer counting, ringing, volume changed - each a distinct
   colour/effect. Brightness and the animation for the listening / thinking /
@@ -229,8 +225,8 @@ scripts/
 
 ## Configuration
 
-Everything worth changing day to day is a Home Assistant entity, not a config
-edit: mic gain, LED brightness, the ring animation per assistant phase
+Day-to-day settings are available as Home Assistant entities: mic gain,
+LED brightness, the ring animation per assistant phase
 (Listening / Thinking / Replying effect), wake-word sensitivity, wake sound,
 boot sound, microphone mute.
 
