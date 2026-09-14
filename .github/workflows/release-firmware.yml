@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: firmware-pages
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build universal firmware
@@ -37,3 +41,85 @@ jobs:
     uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@0fdd5e311b7e744069166696072a1a9cbc5fbeb6
     with:
       version: ${{ needs.build.outputs.version }}
+
+  publish_channels:
+    name: Publish OTA channels
+    if: >-
+      ${{
+        always() &&
+        needs.build.result == 'success' &&
+        (github.event_name == 'push' || github.event_name == 'release') &&
+        (github.event_name != 'release' || needs.upload.result == 'success')
+      }}
+    needs:
+      - build
+      - upload
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      - name: Download current firmware
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: waveshare-voice
+          path: current-firmware
+
+      - name: Prepare channel files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IS_STABLE_RELEASE: ${{ github.event_name == 'release' && !github.event.release.prerelease }}
+        run: |-
+          mkdir -p site/firmware
+
+          if [ "$IS_STABLE_RELEASE" = "true" ]; then
+            python3 scripts/prepare_firmware_channel.py \
+              --source current-firmware \
+              --output site/firmware/stable
+            python3 scripts/prepare_firmware_channel.py \
+              --source current-firmware \
+              --output site/firmware/beta
+          else
+            python3 scripts/prepare_firmware_channel.py \
+              --source current-firmware \
+              --output site/firmware/beta
+
+            stable_tag="$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+              --jq '[.[] | select(.draft == false and .prerelease == false)][0].tag_name // empty')"
+
+            if [ -n "$stable_tag" ]; then
+              mkdir stable-firmware
+              gh release download "$stable_tag" \
+                --pattern 'waveshare-voice.manifest.json' \
+                --pattern 'waveshare-voice-esp32s3.factory.bin' \
+                --pattern 'waveshare-voice-esp32s3.ota.bin' \
+                --dir stable-firmware
+              python3 scripts/prepare_firmware_channel.py \
+                --source stable-firmware \
+                --output site/firmware/stable
+            else
+              cp -a site/firmware/beta site/firmware/stable
+            fi
+          fi
+
+          touch site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

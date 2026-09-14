@@ -31,3 +31,28 @@ wifi:
   fast_connect: !remove
 
 improv_serial:
+
+# Precompiled installations can update themselves without requiring ESPHome or
+# enough host memory to rebuild this firmware. GitHub Pages avoids the long
+# redirects used by GitHub release download URLs.
+http_request:
+  verify_ssl: true
+
+ota:
+  - platform: http_request
+    id: ota_http_request
+
+update:
+  - platform: http_request
+    id: firmware_update_stable
+    name: Stable firmware
+    device_class: firmware
+    entity_category: diagnostic
+    source: https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/firmware/stable/manifest.json
+  - platform: http_request
+    id: firmware_update_beta
+    name: Beta firmware
+    device_class: firmware
+    entity_category: diagnostic
+    disabled_by_default: true
+    source: https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/firmware/beta/manifest.json
