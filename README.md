@@ -107,8 +107,8 @@ larger communications platform.
   breathe, wipe, scan, spinner, comet, twinkle, fireworks, fire, rainbows.
 - **Timers**: set by voice, with an on-ring countdown and a "Next timer" sensor
   in HA. (A daily-alarm engine is present but its entities are hidden by default.)
-- **Buttons**: Key 1 raises volume, Key 2 toggles play/pause and Key 3 lowers
-  volume, matching their physical placement and the LED volume direction.
+- **Buttons**: Key 1 raises volume, Key 2 toggles play/pause, Key 3 lowers
+  volume, and Boot toggles the persistent microphone privacy mute.
 - **Boot chime**: a short "ready" sound once the device connects to HA
   (toggleable, and it also settles the amp so the ring boots silent).
 - **Tunable live from HA**: microphone mute, post-AFE mic gain, LED brightness

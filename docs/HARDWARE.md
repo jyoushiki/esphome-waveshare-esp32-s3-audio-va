@@ -54,9 +54,11 @@ psram:
 | Boot button | GPIO0 | Input, active low |
 | Reset button | CHIP_PU/EN | Hardware reset |
 
-Key 1 raises volume, Key 2 toggles play/pause and Key 3 lowers volume. The key
-inputs have 10 kΩ hardware pull-ups and do not require internal pull resistors.
-See the labelled board image in the [usage guide](USAGE.md#physical-controls).
+Key 1 raises volume, Key 2 toggles play/pause and Key 3 lowers volume. Boot
+toggles microphone privacy mute after the application has started. The three
+expander key inputs have 10 kΩ hardware pull-ups and do not require internal
+pull resistors. See the labelled board image in the
+[usage guide](USAGE.md#physical-controls).
 
 ## I2C bus
 
@@ -222,9 +224,10 @@ Firmware state and configurable effects are described in the
 
 ## USB, boot and unavailable GPIOs
 
-USB D- and D+ use GPIO19 and GPIO20. Hold Boot while resetting the board only
-when manual download mode is required; ordinary operation and OTA updates do
-not use the Boot button.
+USB D- and D+ use GPIO19 and GPIO20. GPIO0 is sampled as a strapping pin during
+reset, so holding Boot while resetting still selects manual download mode. Once
+the firmware is running, an ordinary Boot press is handled as the microphone
+mute control and does not restart the board. OTA updates do not require it.
 
 The ESP32-S3R8's octal flash/PSRAM interface occupies GPIO26 through GPIO37.
 GPIO33 through GPIO37 must not be assigned to application components.

@@ -41,6 +41,7 @@ substitutions:
   i2c_scl: GPIO10
   led_pin: GPIO38
   led_num: '7'              # WS2812 ring
+  boot_button_pin: GPIO0    # application mute button; boot strap during reset
   # TCA9555 expander channels. Confirmed against Waveshare's own driver code
   # (Audio_ES8311.cpp drives EXIO8; Button_Driver.cpp reads EXIO9/10/11), which
   # is why the "schematic says the keys are on 12" folklore is ignored here.
@@ -907,7 +908,9 @@ script:
       # counting or the VA is active while the mic is muted/unmuted).
       - script.execute: control_leds
 
-  # Minimal LED dispatcher: off / solid / a named built-in effect.
+  # Minimal LED dispatcher: off / solid / a named built-in effect, with an
+  # explicit brightness so exceptional states can avoid the user's normal
+  # display level.
   - id: led_set_effect
     mode: restart
     parameters:
@@ -915,13 +918,14 @@ script:
       r: float
       g: float
       b: float
+      brightness: float
     then:
       - lambda: |-
           id(led_ring_color_r) = r;
           id(led_ring_color_g) = g;
           id(led_ring_color_b) = b;
           ESP_LOGI("led", "led_set_effect: effect='%s' rgb(%.2f, %.2f, %.2f) brightness=%.2f",
-                   effect.c_str(), r, g, b, (float) id(led_ring_brightness).state);
+                   effect.c_str(), r, g, b, brightness);
       - if:
           condition:
             lambda: 'return effect == "off";'
@@ -935,14 +939,14 @@ script:
                   - light.turn_on:
                       id: status_ring
                       effect: "None"    # clear any running effect so solid is steady
-                      brightness: !lambda 'return id(led_ring_brightness).state;'
+                      brightness: !lambda 'return brightness;'
                       red: !lambda 'return id(led_ring_color_r);'
                       green: !lambda 'return id(led_ring_color_g);'
                       blue: !lambda 'return id(led_ring_color_b);'
                 else:
                   - light.turn_on:
                       id: status_ring
-                      brightness: !lambda 'return id(led_ring_brightness).state;'
+                      brightness: !lambda 'return brightness;'
                       red: !lambda 'return id(led_ring_color_r);'
                       green: !lambda 'return id(led_ring_color_g);'
                       blue: !lambda 'return id(led_ring_color_b);'
@@ -957,6 +961,7 @@ script:
           const bool wifi_connected = id(wifi_id).is_connected();
           const bool api_connected  = id(api_id).is_connected();
           const bool ringing        = id(timer_ringing).state;
+          const bool mic_muted      = id(mic_is_muted);
           const bool init_progress  = id(init_in_progress);
           const int  phase          = id(voice_assistant_phase);
           const bool timers_active = id(is_timer_active);
@@ -967,7 +972,9 @@ script:
                    (int)timers_active, phase);
 
           auto set = [&](const std::string &effect, float r, float g, float b) {
-            id(led_set_effect).execute(effect, r, g, b);
+            id(led_set_effect).execute(
+              effect, r, g, b, id(led_ring_brightness).state
+            );
           };
 
           if (init_progress) {                       // booting
@@ -981,6 +988,12 @@ script:
           }
           if (ringing) {                             // timer/alarm ringing
             set("Pulse Fast", 0.6, 0.0, 0.6);
+            return;
+          }
+          if (mic_muted) {                           // persistent privacy state
+            // flash_ring() already supplied the bright acknowledgement; keep
+            // the persistent reminder visible but comfortable in a dark room.
+            id(led_set_effect).execute("solid", 1.0, 0.0, 0.0, 0.25);
             return;
           }
 
@@ -1486,3 +1499,20 @@ binary_sensor:
     filters: *button_debounce
     on_press:
       - media_player.volume_down: external_media_player
+
+  # GPIO0 retains its hardware boot-strapping role during reset. Once the
+  # application is running, a normal press is available as a privacy control.
+  - platform: gpio
+    id: microphone_mute_button
+    name: "Microphone mute button"
+    internal: true
+    pin:
+      number: ${boot_button_pin}
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+      ignore_strapping_warning: true
+    filters: *button_debounce
+    on_press:
+      - switch.toggle: mic_mute_switch

@@ -39,6 +39,7 @@ This short sequence is the minimum useful beta report:
 | Spoken reply | The full reply plays without crackle, acceleration or a stuck LED phase |
 | Volume controls | Key 1 raises and Key 3 lowers volume in 5% steps; the cyan ring follows the level |
 | Media control | Key 2 toggles current music between play and pause |
+| Physical mute | Boot toggles microphone mute; after a bright pulse the ring stays dim red and wake words are ignored while muted |
 | Voice timer | A timer counts down, rings and can be stopped |
 | Reset | The board returns to ready state and responds again |
 

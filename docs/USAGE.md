@@ -15,16 +15,20 @@ Home Assistant may add.
 | Key 1 | Raise media-player volume by 5% |
 | Key 2 | Toggle media playback between play and pause |
 | Key 3 | Lower media-player volume by 5% |
+| Boot | Toggle microphone privacy mute |
 
 Changing volume briefly turns the seven LEDs into a cyan level bar. The bar
 starts beside one edge of the USB-C connector and fills around the ring towards
 the other edge.
 
-The buttons do not currently provide a physical microphone-mute action. Use the
-`Microphone Mute` entity in Home Assistant when privacy mute is required.
+Muting through Boot and changing the `Microphone Mute` entity in Home Assistant
+control the same persisted state. A solid red ring indicates that every
+microphone consumer, including wake-word detection, is receiving silence. The
+ring acknowledges the change with a brief bright-red pulse, then remains dim
+red while mute is active so it is not distracting at night.
 
-`Reset` restarts the board. `Boot` is used together with reset when manually
-entering the ESP32-S3 bootloader and is not a normal voice-assistant control.
+`Reset` restarts the board. Holding Boot while resetting still enters the
+ESP32-S3 download bootloader; an ordinary press after startup toggles mute.
 
 ## Wake words
 
@@ -109,6 +113,7 @@ with the playback pipeline.
 | Slowly pulsing violet | At least one voice timer is counting down |
 | Quickly pulsing violet | A timer is ringing |
 | Quickly pulsing red | Assist pipeline error |
+| Dim solid red | Microphone privacy mute is active |
 | Cyan level bar | Volume was changed |
 | Off | Connected and idle |
 

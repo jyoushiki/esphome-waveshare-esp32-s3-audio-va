@@ -23,6 +23,10 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   therefore the only model enabled on a fresh installation by default.
 - A seven-LED cyan volume display that follows the physical ring from one side
   of the USB-C connector to the other.
+- A physical privacy control: pressing Boot during normal operation toggles the
+  persisted microphone mute. A bright acknowledgement fades to a dim red
+  reminder while muted; holding Boot during reset retains the ESP32-S3
+  download-mode behavior.
 - Project-owned installation, usage, troubleshooting and hardware guides,
   including a labelled button image and temporary Home Assistant WAV-capture
   instructions.
