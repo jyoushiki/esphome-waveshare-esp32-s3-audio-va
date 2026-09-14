@@ -18,13 +18,11 @@ speech front end.
 > repository's documentation describes this firmware only.
 
 > [!IMPORTANT]
-> **Release status:** `v1.1.0` is the last stable tag, using the earlier 16 kHz
-> audio layout. Development of the next release happens on the moving `dev`
-> branch and contains the 48 kHz TDM architecture described below. Public beta
-> snapshots will be published as GitHub pre-releases; normal releases are the
-> stable channel. There is no separate beta branch. The precompiled assets
-> described below begin with that forthcoming release series; the historical
-> `v1.1.0` release does not contain them.
+> **Release status:** `v2.0.0-beta.1` is the first public beta of the 48 kHz TDM
+> architecture described below. It is published as a GitHub pre-release with
+> precompiled installation and managed beta updates. `v1.1.0` remains the last
+> stable tag and uses the earlier 16 kHz layout. Active development continues
+> on `dev`; there is no separate beta branch.
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist

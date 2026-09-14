@@ -30,9 +30,9 @@ limits, hidden-SSID behavior, a custom boot-sound source or firmware changes.
 - The moving `dev` branch is development source, not a firmware channel for
   ordinary users or beta testers.
 
-Precompiled assets begin with the forthcoming 48 kHz release series. The
-historical `v1.1.0` release predates this distribution method and does not
-contain the factory or managed-OTA images described here.
+Precompiled assets begin with `v2.0.0-beta.1`. The historical `v1.1.0` release
+predates this distribution method and does not contain the factory or
+managed-OTA images described here.
 
 Download `waveshare-voice-esp32s3.factory.bin` from the selected entry on the
 [GitHub Releases page](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/releases).

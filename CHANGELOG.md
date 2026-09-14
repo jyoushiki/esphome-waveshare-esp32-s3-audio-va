@@ -2,8 +2,14 @@
 
 ## Development
 
-Development towards the next public beta and stable release. It requires
-ESPHome 2026.8.0 or newer. The firmware currently uses the audio-stack fork's
+Changes after the first 2.0 public beta will be documented here.
+
+---
+
+## [2.0.0-beta.1] - 2026-09-14
+
+First public beta of the 48 kHz dual-microphone firmware. It requires ESPHome
+2026.8.0 or newer for source builds. The firmware uses the audio-stack fork's
 sparse-DMA contribution, pinned to the hardware-tested commit
 `b365e91a7930181b000f0849677243e4b1ad1dc0` while upstream PR #14 is pending.
 
