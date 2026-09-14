@@ -27,6 +27,8 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   persisted microphone mute. A bright acknowledgement fades to a dim red
   reminder while muted; holding Boot during reset retains the ESP32-S3
   download-mode behavior.
+- `start_ringing` and `stop_ringing` API actions, allowing Home Assistant
+  automations to reuse the local timer sound, ducking and LED behaviour.
 - Project-owned installation, usage, troubleshooting and hardware guides,
   including a labelled button image and temporary Home Assistant WAV-capture
   instructions.
@@ -76,8 +78,7 @@ sparse-DMA contribution, pinned to the hardware-tested commit
   active timer, preserve the next timer when another completes, and avoid stale
   state after updates or cancellation.
 - Home Assistant API disconnection no longer reboots an otherwise healthy
-  device. Alarm times are validated through one bounded `HH:MM` path before
-  being stored or used.
+  device.
 - The announcement resampler uses its default internal stack; moving it to
   PSRAM caused intermittent first-announcement crackle in hardware tests.
 - Physical buttons use 20 ms press/release debounce filters.
@@ -94,6 +95,9 @@ sparse-DMA contribution, pinned to the hardware-tested commit
 - The obsolete Claude Code skill, whose duplicated hardware and configuration
   notes had diverged from the firmware. Project documentation now lives only in
   the normal, versioned guides.
+- The dormant single-time daily-alarm scheduler, its hidden entities, persisted
+  state, device clock and timezone setting. Home Assistant now owns scheduling
+  and can start or stop the existing local ring behaviour through API actions.
 
 ### Hardware validation
 

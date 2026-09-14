@@ -41,6 +41,7 @@ This short sequence is the minimum useful beta report:
 | Media control | Key 2 toggles current music between play and pause |
 | Physical mute | Boot toggles microphone mute; after a bright pulse the ring stays dim red and wake words are ignored while muted |
 | Voice timer | A timer counts down, rings and can be stopped |
+| External ringing | The Home Assistant `start_ringing` action rings locally and `stop_ringing` restores normal playback and LEDs |
 | Reset | The board returns to ready state and responds again |
 
 Run each failed item at least twice. A one-off network timeout and a repeatable

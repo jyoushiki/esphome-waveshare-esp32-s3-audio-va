@@ -4,7 +4,7 @@
 # Always-on core: ES8311 DAC + speaker, ES7210 dual-mic ADC, on-device wake word
 # (micro_wake_word), the full HA Assist pipeline, a media player that mixes music
 # with announcements, the 7x WS2812 status ring, the three onboard buttons (via
-# the TCA9555 expander) and voice timers + an alarm clock.
+# the TCA9555 expander) and voice timers.
 #
 # AUDIO LAYOUT
 # esp_audio_stack owns the shared ES7210/ES8311 bus in full-duplex TDM mode.
@@ -64,12 +64,6 @@ substitutions:
   # need a different value to avoid recording the prompt or clipping speech.
   wake_chime_capture_delay: 600ms
 
-  # Clock timezone in POSIX form - the device has no IANA database. It is only
-  # a fallback: HA's time platform syncs the clock, and the `set_time_zone` API
-  # action overwrites this at runtime (persisted). Grab yours from
-  # https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
-  posix_timezone: "UTC0"
-
   # One-shot "ready" chime played once the device connects to HA. The default is
   # pinned to this fork so published configurations do not depend on upstream or
   # silently change. Override with any URL or local MP3/FLAC/WAV file.
@@ -106,17 +100,6 @@ esphome:
               - script.execute: control_leds
     - priority: -100
       then:
-        # Restore the alarm settings and the timezone saved in flash.
-        - script.execute:
-            id: set_validated_alarm_time
-            alarm_time_hh_mm: !lambda return id(saved_alarm_time);
-        - lambda: |-
-            auto call = id(alarm_action).make_call();
-            call.set_option(id(saved_alarm_action));
-            call.perform();
-        - lambda: |-
-            setenv("TZ", id(saved_time_zone).c_str(), 1);
-            tzset();
         - script.execute: apply_wake_word_sensitivity
         # Apply the persisted privacy state only after the microphone component
         # exists. The template switch reports the same backing global.
@@ -203,22 +186,14 @@ api:
     - action: stop_va
       then:
         - voice_assistant.stop
-    - action: set_alarm_time
-      variables:
-        alarm_time_hh_mm: string
+    # Home Assistant owns alarm scheduling. These actions reuse the device's
+    # local timer sound, LED state, ducking and 15-minute safety timeout.
+    - action: start_ringing
       then:
-        - script.execute:
-            id: set_validated_alarm_time
-            alarm_time_hh_mm: !lambda return alarm_time_hh_mm;
-    - action: set_time_zone
-      variables:
-        posix_time_zone: string
+        - switch.turn_on: timer_ringing
+    - action: stop_ringing
       then:
-        - lambda: |-
-            setenv("TZ", posix_time_zone.c_str(), 1);
-            tzset();
-            id(saved_time_zone) = posix_time_zone;
-            id(publish_current_time).execute();
+        - switch.turn_off: timer_ringing
   on_client_connected:
     - script.execute: control_leds
   on_client_disconnected:
@@ -242,17 +217,6 @@ tca9555:
   id: ioexp
   i2c_id: internal_i2c
   address: 0x20
-
-time:
-  - platform: homeassistant
-    id: rtc
-    on_time:
-      - seconds: 0
-        minutes: /1
-        then:
-          - script.execute: check_alarm
-    on_time_sync:
-      - script.execute: publish_current_time
 
 # One owner is required for sample-aligned capture and playback. The ES7210
 # emits four samples in 16-bit physical TDM slots. On this board
@@ -825,50 +789,12 @@ globals:
     type: int
     restore_value: no
     initial_value: ${voice_assist_not_ready_phase_id}
-  - id: saved_alarm_time
-    type: std::string
-    restore_value: yes
-    initial_value: '"Unknown"'
-  - id: saved_time_zone
-    type: std::string
-    restore_value: yes
-    initial_value: '"${posix_timezone}"'
-  - id: saved_alarm_action
-    type: std::string
-    restore_value: yes
-    initial_value: '"Play sound"'
   - id: is_timer_active
     type: bool
     restore_value: no
     initial_value: 'false'
 
 script:
-  # Single entry point for alarm-time state, including restored flash values.
-  - id: set_validated_alarm_time
-    parameters:
-      alarm_time_hh_mm: string
-    then:
-      - lambda: |-
-          const bool format_valid =
-            alarm_time_hh_mm.length() == 5 && alarm_time_hh_mm[2] == ':' &&
-            alarm_time_hh_mm[0] >= '0' && alarm_time_hh_mm[0] <= '9' &&
-            alarm_time_hh_mm[1] >= '0' && alarm_time_hh_mm[1] <= '9' &&
-            alarm_time_hh_mm[3] >= '0' && alarm_time_hh_mm[3] <= '9' &&
-            alarm_time_hh_mm[4] >= '0' && alarm_time_hh_mm[4] <= '9';
-          const int hour = format_valid
-            ? (alarm_time_hh_mm[0] - '0') * 10 + (alarm_time_hh_mm[1] - '0')
-            : -1;
-          const int minute = format_valid
-            ? (alarm_time_hh_mm[3] - '0') * 10 + (alarm_time_hh_mm[4] - '0')
-            : -1;
-
-          if (format_valid && hour <= 23 && minute <= 59) {
-            id(alarm_time).publish_state(alarm_time_hh_mm);
-            id(saved_alarm_time) = alarm_time_hh_mm;
-          } else {
-            ESP_LOGW("alarm", "Rejected invalid alarm time: %s", alarm_time_hh_mm.c_str());
-          }
-
   - id: apply_wake_word_sensitivity
     mode: restart
     then:
@@ -986,7 +912,7 @@ script:
             set("Pulse Medium", 1.0, 0.0, 0.0);
             return;
           }
-          if (ringing) {                             // timer/alarm ringing
+          if (ringing) {                             // timer/external ring request
             set("Pulse Fast", 0.6, 0.0, 0.6);
             return;
           }
@@ -1112,34 +1038,6 @@ script:
             id(next_timer_name).publish_state("-");
           }
 
-  - id: check_alarm
-    then:
-      - lambda: |-
-          id(publish_current_time).execute();
-          if (id(alarm_on).state && id(alarm_time).has_state()) {
-            const auto &set_alarm_time = id(alarm_time).state;
-            const int alarm_hour = (set_alarm_time[0] - '0') * 10 + (set_alarm_time[1] - '0');
-            const int alarm_minute = (set_alarm_time[3] - '0') * 10 + (set_alarm_time[4] - '0');
-
-            auto time_now = id(rtc).now();
-            if (time_now.hour == alarm_hour && time_now.minute == alarm_minute) {
-              std::string action = id(alarm_action).current_option();
-              if (action == "Play sound") {
-                id(timer_ringing).turn_on();
-              } else if (action == "Send event") {
-                id(send_alarm_event).execute();
-              } else if (action == "Sound and event") {
-                id(timer_ringing).turn_on();
-                id(send_alarm_event).execute();
-              }
-            }
-          }
-
-  - id: send_alarm_event
-    then:
-      - homeassistant.event:
-          event: esphome.alarm_ringing
-
   - id: send_tts_uri_event
     parameters:
       tts_uri: string
@@ -1157,18 +1055,6 @@ script:
           event: esphome.stt_text
           data:
             text: !lambda return stt_text;
-
-  - id: publish_current_time
-    mode: single
-    then:
-      - lambda: |-
-          static std::string last_time_string = "";
-          auto time_now = id(rtc).now();
-          std::string current_time_string = time_now.strftime("%H:%M");
-          if (current_time_string != last_time_string) {
-            id(current_time).publish_state(current_time_string);
-            last_time_string = current_time_string;
-          }
 
 select:
   - platform: template
@@ -1250,22 +1136,6 @@ select:
     id: logger_select
     name: Logger Level
     disabled_by_default: true
-  - platform: template
-    optimistic: true
-    name: "Alarm action"
-    id: alarm_action
-    icon: mdi:bell-plus
-    internal: true              # daily-alarm feature, hidden from HA
-    options:
-      - "Play sound"
-      - "Send event"
-      - "Sound and event"
-    initial_option: "Play sound"
-    on_value:
-      then:
-        - lambda: |-
-            id(saved_alarm_action) = x;
-
 switch:
   # Live AEC control inside the active AFE. Disabling it leaves dual-mic BSS and
   # post-AFE AGC running, so this entity controls only what its name says.
@@ -1374,18 +1244,6 @@ switch:
           duration: 1.0s
       - script.execute: control_leds
 
-  - platform: template
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    id: alarm_on
-    icon: mdi:bell-badge
-    name: "Alarm on"
-    internal: true              # daily-alarm feature, hidden from HA
-    on_turn_on:
-      - script.execute: control_leds
-    on_turn_off:
-      - script.execute: control_leds
-
 number:
   # Runtime gain is deliberately applied after AEC/AFE. The ES7210 hardware
   # gain stays at 30 dB for both physical mics and the reference, so
@@ -1435,19 +1293,6 @@ text_sensor:
     name: "Next timer name"
     icon: "mdi:timer"
     update_interval: never
-  - platform: template
-    name: "Alarm time"
-    id: alarm_time
-    icon: mdi:bell-ring
-    internal: true              # daily-alarm feature, hidden from HA
-    update_interval: never
-  # Published for the alarm/clock logic, but not shown in HA (it's just the
-  # device's own clock, which HA already has).
-  - platform: template
-    id: current_time
-    internal: true
-    update_interval: never
-
 button:
   - platform: factory_reset
     id: factory_reset_button

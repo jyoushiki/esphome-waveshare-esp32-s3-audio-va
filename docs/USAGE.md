@@ -121,7 +121,7 @@ The listening, thinking and replying effects may be different even though the
 phase colour remains violet. This makes the activity recognizable without
 giving arbitrary control of the status light to Home Assistant.
 
-## Music, announcements and timers
+## Music, announcements, timers and external ringing
 
 The media player accepts ordinary media as well as announcements. An
 announcement ducks ongoing music, and starting Assist ducks music more strongly
@@ -132,3 +132,15 @@ Voice timers are managed by the Assist pipeline. When a timer finishes, its
 sound repeats until stopped or until the 15-minute safety timeout expires.
 Saying an enabled wake word while the timer is ringing stops it instead of
 starting a new Assist request.
+
+Home Assistant owns calendar and alarm scheduling. Two device actions expose
+the same local ringing behaviour to automations:
+
+- `start_ringing` starts the repeating timer sound, ducks music and shows the
+  ringing LED state.
+- `stop_ringing` stops the sound and restores the normal audio and LED states.
+
+In Home Assistant their generated action names include the ESPHome node name,
+for example `esphome.waveshare_voice_start_ringing` and
+`esphome.waveshare_voice_stop_ringing`. The ringing safety timeout remains 15
+minutes, and saying an enabled wake word also stops it.

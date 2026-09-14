@@ -58,7 +58,6 @@ Copy `waveshare-va.yaml` and edit only its `substitutions:` values:
 substitutions:
   name: waveshare-voice
   friendly_name: "Waveshare Voice"
-  posix_timezone: "CET-1CEST,M3.5.0,M10.5.0/3"
   volume_min: '0.4'
   volume_max: '0.8'
   hidden_ssid: 'false'

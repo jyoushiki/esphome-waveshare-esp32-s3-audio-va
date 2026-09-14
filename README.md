@@ -106,7 +106,7 @@ larger communications platform.
   replying phases are pickable from HA: solid plus 14 animations - pulses,
   breathe, wipe, scan, spinner, comet, twinkle, fireworks, fire, rainbows.
 - **Timers**: set by voice, with an on-ring countdown and a "Next timer" sensor
-  in HA. (A daily-alarm engine is present but its entities are hidden by default.)
+  in HA. Home Assistant automations can invoke the same local ringing behaviour.
 - **Buttons**: Key 1 raises volume, Key 2 toggles play/pause, Key 3 lowers
   volume, and Boot toggles the persistent microphone privacy mute.
 - **Boot chime**: a short "ready" sound once the device connects to HA
@@ -275,7 +275,6 @@ What lives in `waveshare-va.yaml`:
 | Substitution | Default | What it does |
 |---|---|---|
 | `name` / `friendly_name` | `waveshare-va` / `Waveshare Voice` | Device name. Changing `name` re-creates every entity in HA. |
-| `posix_timezone` | `CET-1CEST,...` | Clock zone in POSIX form (the device has no IANA database). DST automatic. |
 | `volume_min` / `volume_max` | `0.4` / `0.8` | Media player clamps, because the onboard amp distorts near the top. |
 | `hidden_ssid` | `false` | `true` enables `fast_connect` for a hidden SSID. |
 | `boot_sound_file` | repo `startup.mp3` | The connect-to-HA chime. Any URL or local MP3/FLAC/WAV. |
