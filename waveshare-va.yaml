@@ -39,7 +39,7 @@ substitutions:
 packages:
   core:
     url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va
-    ref: v2.0.0-beta.1
+    ref: v2.0.0-beta.2
     files:
       - base/core.yaml
     refresh: 1d

@@ -163,20 +163,27 @@ The validated DMA operating point is:
 
 | Parameter | Value |
 |---|---|
-| Descriptor count | 8, selected automatically |
-| Frames per descriptor | 512, selected automatically |
-| Queued bus frames | 4096 |
-| Queue duration at 48 kHz | 85.3 ms |
+| Descriptor count | 10, selected automatically |
+| Frames per descriptor | 384, selected automatically |
+| Queued bus frames | 3840 |
+| Queue duration at 48 kHz | 80 ms |
 | Automatic processor margin | Enabled |
 
-The audio stack initially calculates six descriptors and raises the count to
-eight to retain its normal processor-frame margin. The 16-bit sparse RX/TX
-geometry left approximately 38 KiB of DMA-capable memory free after I2S was
-enabled in the final instrumented build. Under the exercised concurrent
-music/Assist workload, the sampled minima remained around 15 KiB DMA-capable
-and 13 KiB for the largest internal block. Earlier 32-bit framing consumed
-twice as much DMA memory and made that margin impractical; it was not a codec
-requirement.
+Automatic geometry preserves the previously validated full-slot timing while
+packing only the enabled slots. At this operating point, DMA payload storage
+is 30 KiB (22.5 KiB RX and 7.5 KiB TX), instead of 60 KiB when both directions
+store all four slots. Descriptor and driver bookkeeping require additional
+memory.
+
+The initial sparse implementation selected 512 frames and eight descriptors.
+That configuration produced periodic playback clicks on this board. Returning
+to 384 frames and ten descriptors eliminated the observed clicks without
+giving up slot compaction. Captured software-side PCM and DMA traces did not
+establish the precise hardware-level cause; an underrun or data corruption
+should not be assumed from this result alone.
+
+Earlier 32-bit framing consumed twice as much DMA payload memory; it was not
+a codec requirement.
 
 ## Memory layout
 

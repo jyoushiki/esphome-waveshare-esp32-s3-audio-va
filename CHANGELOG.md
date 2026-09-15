@@ -2,7 +2,30 @@
 
 ## Development
 
-Changes after the first 2.0 public beta will be documented here.
+Changes after the second 2.0 public beta will be documented here.
+
+---
+
+## [2.0.0-beta.2] - 2026-09-15
+
+### Fixed
+
+- Periodic playback clicks observed with the initial sparse-DMA geometry,
+  especially on boot and local chimes. The audio-stack dependency is now pinned
+  to `373be4d5de7ad6c3f6282a64e5487751571d9a1d`, which preserves the validated
+  automatic 384-frame, 10-descriptor geometry while retaining compact RX/TX
+  slot storage. The precise hardware-level cause remains unconfirmed; this
+  operating point has been tested on the Waveshare S3 board.
+
+### Changed
+
+- Use resampler complexity 3 with the speed-oriented implementation, rather
+  than complexity 1 with the memory-oriented implementation. Listening tests
+  found no regression, but did not establish a clear audible improvement.
+- Build with performance-oriented compiler optimization (`PERF`).
+- Disable the high-performance lwIP networking preset to reduce TCP window and
+  mailbox buffering during concurrent music and Assist playback. ESPHome's
+  separately selected Wi-Fi buffers are unchanged.
 
 ---
 

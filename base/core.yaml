@@ -124,6 +124,8 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
+    advanced:
+      compiler_optimization: PERF
     sdkconfig_options:
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
@@ -153,8 +155,13 @@ psram:
 # tested fork revision builds on v2026.9.2 and adds direction-specific sparse
 # TDM DMA (upstream PR #14).
 external_components:
-  - source: github://jyoushiki/esphome-audio-stack@b365e91a7930181b000f0849677243e4b1ad1dc0
+  - source: github://jyoushiki/esphome-audio-stack@373be4d5de7ad6c3f6282a64e5487751571d9a1d
     components: [esp_audio_stack, esp_afe]
+
+network:
+  # Use normal lwIP TCP windows/mailboxes for the full-duplex audio workload.
+  # This does not override ESPHome's separately selected Wi-Fi buffer settings.
+  enable_high_performance: false
 
 wifi:
   id: wifi_id
@@ -273,8 +280,8 @@ esp_audio_stack:
   # Move larger non-DMA audio buffers to PSRAM; DMA remains internal.
   buffers_in_psram: true
   audio_effects:
-    rate_cvt_complexity: 1
-    rate_cvt_perf_type: memory
+    rate_cvt_complexity: 3
+    rate_cvt_perf_type: speed
   master_volume_min_db: -30.0
 
   # Gate the NS4150B from actual speaker ownership, including sounds which do

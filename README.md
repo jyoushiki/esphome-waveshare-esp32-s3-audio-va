@@ -18,8 +18,9 @@ speech front end.
 > repository's documentation describes this firmware only.
 
 > [!IMPORTANT]
-> **Release status:** `v2.0.0-beta.1` is the first public beta of the 48 kHz TDM
-> architecture described below. It is published as a GitHub pre-release with
+> **Release status:** `v2.0.0-beta.2` is the current public beta of the 48 kHz TDM
+> architecture described below. It fixes periodic playback clicks observed in
+> the first beta. It is published as a GitHub pre-release with
 > precompiled installation and managed beta updates. `v1.1.0` remains the last
 > stable tag and uses the earlier 16 kHz layout. Active development continues
 > on `dev`; there is no separate beta branch.
@@ -124,8 +125,8 @@ TDM slots for clock timing but transfers only the slots each DMA direction
 uses: RX carries the two microphones plus analog playback reference, and TX
 carries the single speaker slot. With the 16-bit framing, the stack can retain
 its normal processor margin and select the DMA geometry automatically. The
-validated build uses eight 512-frame descriptors without exhausting the
-ESP32-S3's internal DMA-capable RAM.
+validated build uses ten 384-frame descriptors, retaining the previously tested
+timing while halving DMA payload storage from 60 KiB to 30 KiB.
 Large buffers and media-decoder stacks use the board's PSRAM so Voice Assistant
 does not compete with I2S DMA, while latency-sensitive task stacks retain their
 default internal-RAM placement.
