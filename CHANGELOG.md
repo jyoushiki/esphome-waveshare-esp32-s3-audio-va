@@ -9,6 +9,10 @@ Changes after the second 2.0 public beta will be documented here.
 - Key 2 is now a contextual action button. In priority order it stops ringing,
   cancels an active Assist interaction, stops an announcement, toggles music
   playback, or starts Assist manually when idle and the microphone is unmuted.
+- The LED ring now displays the remaining fraction of the closest active voice
+  timer as a seven-segment violet countdown instead of a generic pulse.
+- The volume-level display now uses a deep blue instead of cyan, keeping it
+  distinct from violet Assist/timer states and red mute/error states.
 
 ---
 

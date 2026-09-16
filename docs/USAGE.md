@@ -17,7 +17,7 @@ Home Assistant may add.
 | Key 3 | Lower media-player volume by 5% |
 | Boot | Toggle microphone privacy mute |
 
-Changing volume briefly turns the seven LEDs into a cyan level bar. The bar
+Changing volume briefly turns the seven LEDs into a blue level bar. The bar
 starts beside one edge of the USB-C connector and fills around the ring towards
 the other edge.
 
@@ -125,11 +125,11 @@ with the playback pipeline.
 | Pulsing red | Wi-Fi or the Home Assistant API is unavailable |
 | Solid violet | Wake word accepted; waiting for the command |
 | Configurable violet animation | Listening, thinking or replying, according to the active phase |
-| Slowly pulsing violet | At least one voice timer is counting down |
+| Violet countdown bar | Remaining fraction of the closest active voice timer |
 | Quickly pulsing violet | A timer is ringing |
 | Quickly pulsing red | Assist pipeline error |
 | Dim solid red | Microphone privacy mute is active |
-| Cyan level bar | Volume was changed |
+| Blue level bar | Volume was changed |
 | Off | Connected and idle |
 
 The listening, thinking and replying effects may be different even though the
@@ -147,6 +147,12 @@ Voice timers are managed by the Assist pipeline. When a timer finishes, its
 sound repeats until stopped or until the 15-minute safety timeout expires.
 Saying an enabled wake word while the timer is ringing stops it instead of
 starting a new Assist request.
+
+While timers are active and the device is otherwise idle, the violet ring
+shows the remaining fraction of the timer that will finish first. It starts
+full and drains from one side of the USB-C connector towards the other. With
+multiple timers, the display automatically moves to the next one when the
+closest timer finishes or is cancelled.
 
 Home Assistant owns calendar and alarm scheduling. Two device actions expose
 the same local ringing behaviour to automations:

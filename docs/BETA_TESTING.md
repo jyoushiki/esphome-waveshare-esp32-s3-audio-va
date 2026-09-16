@@ -47,7 +47,7 @@ This short sequence is the minimum useful beta report:
 | Short command | Capture starts, ends naturally and produces the correct response |
 | Long command | The complete sentence reaches STT without losing its beginning or ending early |
 | Spoken reply | The full reply plays without crackle, acceleration or a stuck LED phase |
-| Volume controls | Key 1 raises and Key 3 lowers volume in 5% steps; the cyan ring follows the level |
+| Volume controls | Key 1 raises and Key 3 lowers volume in 5% steps; the blue ring follows the level |
 | Media control | Key 2 toggles current music between play and pause when the device is not ringing |
 | Physical ring stop | Key 2 stops a voice timer or external ring request, including while the microphone is muted |
 | Physical mute | Boot toggles microphone mute; after a bright pulse the ring stays dim red and wake words are ignored while muted |

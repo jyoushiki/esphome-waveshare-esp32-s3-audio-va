@@ -102,7 +102,7 @@ playback reference and local AEC.
   colour/effect. Brightness and the animation for the listening / thinking /
   replying phases are pickable from HA: solid plus 14 animations - pulses,
   breathe, wipe, scan, spinner, comet, twinkle, fireworks, fire, rainbows.
-- **Timers**: set by voice, with an on-ring countdown and a "Next timer" sensor
+- **Timers**: set by voice, with a seven-LED countdown and a "Next timer" sensor
   in HA. Home Assistant automations can invoke the same local ringing behaviour.
 - **Buttons**: Key 1 raises volume, Key 2 contextually stops ringing, Assist or
   announcements, controls music, or starts Assist, Key 3 lowers volume, and

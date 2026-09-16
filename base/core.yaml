@@ -633,10 +633,16 @@ voice_assistant:
             closest_timer = &timer;
           }
         }
-        if (closest_timer != nullptr && closest_timer->seconds_left % 5 == 0) {
-          id(next_timer).publish_state(closest_timer->seconds_left);
+        if (closest_timer != nullptr) {
+          const float total = std::max(1.0f, static_cast<float>(closest_timer->total_seconds));
+          id(timer_progress_ratio) = std::max(
+            0.0f,
+            std::min(1.0f, static_cast<float>(closest_timer->seconds_left) / total)
+          );
+          if (closest_timer->seconds_left % 5 == 0) {
+            id(next_timer).publish_state(closest_timer->seconds_left);
+          }
         }
-        // The ring is repainted centrally by control_leds().
 
 light:
   - platform: esp32_rmt_led_strip
@@ -762,7 +768,25 @@ light:
               // Start beside one edge of the USB-C connector and finish at
               // the LED beside its other edge.
               it[(i + 4) % n] = Color(
-                0, (uint8_t)(180 * intensity), (uint8_t)(255 * intensity)
+                (uint8_t)(40 * intensity),
+                (uint8_t)(80 * intensity),
+                (uint8_t)(255 * intensity)
+              );
+            }
+      # Timer countdown. It follows the same physical USB-to-USB direction as
+      # the volume display, but drains as the closest active timer approaches
+      # zero. The boundary LED fades fractionally between the seven steps.
+      - addressable_lambda:
+          name: "Timer Progress"
+          update_interval: 100ms
+          lambda: |-
+            const float ratio = std::max(0.0f, std::min(1.0f, id(timer_progress_ratio)));
+            const int n = it.size();
+            const float filled = ratio * n;
+            for (int i = 0; i < n; i++) {
+              const float coverage = std::max(0.0f, std::min(1.0f, filled - i));
+              it[(i + 4) % n] = Color(
+                (uint8_t)(153 * coverage), 0, (uint8_t)(153 * coverage)
               );
             }
 
@@ -786,6 +810,10 @@ globals:
     restore_value: no
     initial_value: '1.0'
   - id: volume_display_level
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+  - id: timer_progress_ratio
     type: float
     restore_value: no
     initial_value: '0.0'
@@ -958,13 +986,13 @@ script:
           }
 
           if (timers_active) {                       // a timer is counting down
-            set("Pulse Slow", 0.6, 0.0, 0.6);
+            set("Timer Progress", 0.6, 0.0, 0.6);
             return;
           }
 
           set("off", 0, 0, 0);                       // idle
 
-  # Show the selected volume as a cyan progress bar, then return to the current
+  # Show the selected volume as a blue progress bar, then return to the current
   # assistant/timer/connectivity state. Restarting extends the display while
   # consecutive volume commands arrive.
   - id: control_leds_volume_changed
@@ -1043,9 +1071,15 @@ script:
 
           id(is_timer_active) = closest_timer != nullptr;
           if (closest_timer != nullptr) {
+            const float total = std::max(1.0f, static_cast<float>(closest_timer->total_seconds));
+            id(timer_progress_ratio) = std::max(
+              0.0f,
+              std::min(1.0f, static_cast<float>(closest_timer->seconds_left) / total)
+            );
             id(next_timer).publish_state(closest_timer->seconds_left);
             id(next_timer_name).publish_state(closest_timer->name);
           } else {
+            id(timer_progress_ratio) = 0.0f;
             id(next_timer).publish_state(-1);
             id(next_timer_name).publish_state("-");
           }
