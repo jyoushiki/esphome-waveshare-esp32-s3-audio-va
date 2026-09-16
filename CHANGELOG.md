@@ -4,6 +4,12 @@
 
 Changes after the second 2.0 public beta will be documented here.
 
+### Changed
+
+- Key 2 is now a contextual action button. In priority order it stops ringing,
+  cancels an active Assist interaction, stops an announcement, toggles music
+  playback, or starts Assist manually when idle and the microphone is unmuted.
+
 ---
 
 ## [2.0.0-beta.2] - 2026-09-15

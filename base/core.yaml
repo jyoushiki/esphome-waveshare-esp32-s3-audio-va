@@ -1335,7 +1335,7 @@ binary_sensor:
 
   - platform: gpio
     id: media_play_pause_button
-    name: "Media play-pause button"
+    name: "Action button"
     internal: true
     pin:
       tca9555: ioexp
@@ -1349,7 +1349,34 @@ binary_sensor:
           then:
             - switch.turn_off: timer_ringing
           else:
-            - media_player.toggle: external_media_player
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
+                else:
+                  - if:
+                      condition:
+                        media_player.is_announcing:
+                      then:
+                        - media_player.stop:
+                            id: external_media_player
+                            announcement: true
+                      else:
+                        - if:
+                            condition:
+                              lambda: |-
+                                const auto state = id(external_media_player).state;
+                                return state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING ||
+                                       state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_PAUSED;
+                            then:
+                              - media_player.toggle: external_media_player
+                            else:
+                              - if:
+                                  condition:
+                                    switch.is_off: mic_mute_switch
+                                  then:
+                                    - voice_assistant.start:
 
   - platform: gpio
     id: volume_down_button

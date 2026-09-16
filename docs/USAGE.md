@@ -7,13 +7,13 @@ Home Assistant may add.
 ## Physical controls
 
 <img src="buttons.png"
-     alt="Button positions on the Waveshare ESP32-S3-AUDIO-Board: Reset, Boot, volume down, play-pause and volume up"
+     alt="Button positions on the Waveshare ESP32-S3-AUDIO-Board: Reset, Boot, volume down, multifunction action and volume up"
      width="560">
 
 | Board button | Action |
 |---|---|
 | Key 1 | Raise media-player volume by 5% |
-| Key 2 | Stop an active timer/ring request; otherwise toggle media play/pause |
+| Key 2 | Contextual action: stop ringing, Assist or an announcement; control music; or start Assist |
 | Key 3 | Lower media-player volume by 5% |
 | Boot | Toggle microphone privacy mute |
 
@@ -160,6 +160,15 @@ for example `esphome.waveshare_voice_start_ringing` and
 `esphome.waveshare_voice_stop_ringing`. The ringing safety timeout remains 15
 minutes, and saying an enabled wake word also stops it.
 
-Key 2 provides a physical stop control for both voice timers and external ring
-requests. This remains available while the microphone is muted; when nothing is
-ringing, the button keeps its normal media play/pause function.
+Key 2 is a contextual action button. Each press performs the first applicable
+action in this order:
+
+1. Stop a voice timer or external ring request.
+2. Cancel the active Assist interaction.
+3. Stop the current announcement or TTS response.
+4. Pause or resume music.
+5. Start Assist manually when the device is otherwise idle.
+
+Stopping a ring or controlling playback remains available while the microphone
+is muted. Manual Assist start is ignored until microphone privacy mute is
+disabled.
