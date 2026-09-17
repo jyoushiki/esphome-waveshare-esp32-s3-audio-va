@@ -27,8 +27,21 @@ limits, hidden-SSID behavior, a custom boot-sound source or firmware changes.
 
 Open the project's **[browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
 in a Chromium-based browser with Web Serial support, such as Chrome or Edge.
-Connect the board with a USB data cable, select **Install** and choose its serial
-port when prompted. The page displays the exact release version it will flash.
+Connect the board with a USB data cable and select **Connect**:
+
+<img src="ewt_connect.png"
+     alt="Connect button on the project browser installer"
+     width="700">
+
+Choose the board's serial port when prompted, then select **Install Waveshare
+ESP32-S3 Voice Assistant**:
+
+<img src="ewt_install.png"
+     alt="Install firmware option in the ESP Web Tools device dialog"
+     width="520">
+
+Confirm the installation and wait for flashing and reboot to complete. The page
+displays the exact release version it will flash.
 
 The installer is generated with
 [`ewt-gen`](https://github.com/esphome/ewt-gen) and ESP Web Tools from the same
@@ -39,15 +52,17 @@ The page follows the most recently published firmware release. During the 2.0
 public-beta period this is a beta image; its version is shown before flashing.
 Normal and beta managed-update channels can be selected after installation.
 
-### 2. Install and provision Wi-Fi
+### 2. Provision Wi-Fi
 
-Wait for installation and reboot to complete. If the installation dialog offers
-Wi-Fi provisioning, enter the board's network credentials there. Otherwise,
-reconnect to the board and use ESPHome Web's **Configure Wi-Fi** button:
+ESP Web Tools may open Wi-Fi provisioning automatically after the first reboot.
+If it does not, select **Connect** again, choose the same serial port and then
+select **Connect to Wi-Fi**:
 
-<img src="wifi.png"
-     alt="ESPHome Web Configure Wi-Fi button"
-     width="500">
+<img src="ewt_wifi.png"
+     alt="Connect to Wi-Fi option after installing the firmware"
+     width="520">
+
+Enter the network credentials and wait for the device to connect.
 
 The firmware accepts the credentials through **Improv Serial** and stores them
 on the board; no Wi-Fi password is embedded in the downloadable image.
@@ -66,7 +81,14 @@ firmware.
 
 After the board joins Wi-Fi:
 
-1. Add or accept the discovered ESPHome integration.
+1. Select **Add to Home Assistant** when the installer offers it:
+
+   <img src="ewt_add.png"
+        alt="Add to Home Assistant button after Wi-Fi provisioning"
+        width="340">
+
+   If the dialog was closed or the step was skipped, add or accept the
+   discovered ESPHome integration from Home Assistant instead.
 2. Assign the desired Assist pipeline when Home Assistant prompts for it.
 3. Wait for the one-shot startup sound.
 4. Say **OK Nabu**. It is the first configured model and therefore the only one
