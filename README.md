@@ -18,12 +18,14 @@ speech front end.
 > repository's documentation describes this firmware only.
 
 > [!IMPORTANT]
-> **Release status:** `v2.0.0-beta.2` is the current public beta of the 48 kHz TDM
-> architecture described below. It fixes periodic playback clicks observed in
-> the first beta. It is published as a GitHub pre-release with
-> precompiled installation and managed beta updates. `v1.1.0` remains the last
-> stable tag and uses the earlier 16 kHz layout. Active development continues
-> on `dev`; there is no separate beta branch.
+> **Release status:** `v2.0.0-beta.3` is the current public beta of the 48 kHz TDM
+> architecture described below. It moves sparse TDM to the Audio Stack
+> maintainer's ESPHome 2026.9 development revision, adds the project browser
+> installer and makes the full editable YAML available through Device Builder.
+> It is published as a GitHub pre-release with precompiled installation and
+> managed beta updates. `v1.1.0` remains the last stable tag and uses the earlier
+> 16 kHz layout. Active development continues on `dev`; there is no separate
+> beta branch.
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
@@ -42,7 +44,7 @@ configuration source for the other.
 | Physical playback | 48 kHz, four 16-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
 | Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
 | Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
-| Dependencies | External `esphome-audio-stack`, with the pending sparse-DMA contribution pinned to a tested revision | Pure stock ESPHome; no external audio component |
+| Dependencies | External `esphome-audio-stack`, pinned to a hardware-tested upstream development revision | Pure stock ESPHome; no external audio component |
 | Main advantage | Better use of this board's audio hardware, echo handling and 48 kHz output | Simpler build, fewer moving parts and easier alignment with stock ESPHome |
 | Main tradeoff | More code, RAM pressure, build time and hardware-specific complexity | Lower playback bandwidth and no use of the board's analog reference for AEC |
 
@@ -63,7 +65,7 @@ whereas `esphome-intercom` is a broader voice and SIP/VoIP platform.
 | | This project | `esphome-intercom` full experience |
 |---|---|---|
 | Primary purpose | Dedicated Assist satellite and media player | Voice assistant plus a complete SIP/VoIP endpoint |
-| Physical buttons | Volume up, play/pause and volume down | Calling, contact selection, answering and declining |
+| Physical buttons | Volume up, contextual Assist/media action and volume down | Calling, contact selection, answering and declining |
 | Wake words | Four bundled alternatives with selectable sensitivity | A simpler default wake-word setup intended for its shared runtime |
 | LED experience | Selectable per-phase effects and a physical volume-level display | Call, assistant and media state coordinated by a generic runtime controller |
 | Voice tuning | Board-specific speech-recognition AFE, post-AFE AGC and calibrated mic/reference gain | Full-duplex profile tuned for simultaneous Voice Assistant, media and calls |
@@ -120,20 +122,21 @@ converts the selected microphone/reference inputs to **16 kHz** before
 Espressif's AFE, Micro Wake Word and Home Assistant. Music and TTS therefore
 retain 48 kHz playback while the speech pipeline stays at its native rate.
 
-This is possible because the forked audio stack preserves all four physical
+This is possible because the audio stack preserves all four physical
 TDM slots for clock timing but transfers only the slots each DMA direction
 uses: RX carries the two microphones plus analog playback reference, and TX
 carries the single speaker slot. With the 16-bit framing, the stack can retain
 its normal processor margin and select the DMA geometry automatically. The
-validated build uses ten 384-frame descriptors, retaining the previously tested
-timing while halving DMA payload storage from 60 KiB to 30 KiB.
+validated build uses six 384-frame descriptors, with 18 KiB of DMA payload
+storage instead of 36 KiB if both directions transferred all four slots.
 Large buffers and media-decoder stacks use the board's PSRAM so Voice Assistant
 does not compete with I2S DMA, while latency-sensitive task stacks retain their
 default internal-RAM placement.
 
-The tradeoff is additional rate-conversion work and reliance on the fork's
-sparse-DMA revision until the change is available in an upstream release. See
-[Hardware: Shared I2S clocks](docs/HARDWARE.md#shared-i2s-clocks) for the
+The tradeoff is additional rate-conversion work and reliance on a pinned
+upstream development revision until the change is available in a published
+Audio Stack release. See
+[Hardware: Shared full-duplex bus](docs/HARDWARE.md#shared-full-duplex-bus) for the
 measured DMA geometry and validation results.
 
 > [!TIP]
@@ -145,8 +148,9 @@ measured DMA geometry and validation results.
 ## Installation
 
 The **precompiled release is the default and recommended route**. It can be
-installed through ESPHome Web, receives Wi-Fi credentials afterwards and
-supports managed stable or beta updates without ESPHome Device Builder.
+installed through the project browser installer, receives Wi-Fi credentials
+afterwards and supports managed stable or beta updates without ESPHome Device
+Builder.
 
 **[Open the browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
 in Chrome or Edge, connect the board over USB and select **Install**. The page
@@ -213,7 +217,7 @@ playback remains at 48 kHz. The annotated configuration is in
 prebuilt/
   waveshare-va.factory.yaml # credential-free universal release wrapper
 waveshare-va.yaml           # complete editable firmware and source of truth
-secrets.example.yaml        # source builds: copy to secrets.yaml
+secrets.example.yaml        # optional source-build credentials template
 base/
   sounds/                   # bundled project-owned audio assets
 docs/

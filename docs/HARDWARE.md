@@ -54,9 +54,9 @@ psram:
 | Boot button | GPIO0 | Input, active low |
 | Reset button | CHIP_PU/EN | Hardware reset |
 
-Key 1 raises volume, Key 2 stops active ringing or otherwise toggles
-play/pause, and Key 3 lowers volume. Boot toggles microphone privacy mute after
-the application has started. The three
+Key 1 raises volume, Key 2 performs the first applicable Assist/media action,
+and Key 3 lowers volume. Boot toggles microphone privacy mute after the
+application has started. The three
 expander key inputs have 10 kΩ hardware pull-ups and do not require internal
 pull resistors. See the labelled board image in the
 [usage guide](USAGE.md#physical-controls).
@@ -163,24 +163,26 @@ The validated DMA operating point is:
 
 | Parameter | Value |
 |---|---|
-| Descriptor count | 10, selected automatically |
+| Descriptor count | 6, selected automatically |
 | Frames per descriptor | 384, selected automatically |
-| Queued bus frames | 3840 |
-| Queue duration at 48 kHz | 80 ms |
+| Queued bus frames | 2304 |
+| Queue duration at 48 kHz | 48 ms |
 | Automatic processor margin | Enabled |
 
-Automatic geometry preserves the previously validated full-slot timing while
-packing only the enabled slots. At this operating point, DMA payload storage
-is 30 KiB (22.5 KiB RX and 7.5 KiB TX), instead of 60 KiB when both directions
-store all four slots. Descriptor and driver bookkeeping require additional
-memory.
+Automatic geometry packs only the enabled slots. At this operating point, DMA
+payload storage is 18 KiB (13.5 KiB RX and 4.5 KiB TX), instead of 36 KiB when
+both directions store all four slots. Descriptor and driver bookkeeping require
+additional memory.
 
 The initial sparse implementation selected 512 frames and eight descriptors.
-That configuration produced periodic playback clicks on this board. Returning
-to 384 frames and ten descriptors eliminated the observed clicks without
-giving up slot compaction. Captured software-side PCM and DMA traces did not
-establish the precise hardware-level cause; an underrun or data corruption
-should not be assumed from this result alone.
+That configuration produced periodic playback clicks on this board. The earlier
+fork returned to the previously clean 384-frame, ten-descriptor geometry. The
+maintainer's current implementation separates the smaller transport slice from
+the native AFE block and automatically selects six 384-frame descriptors; this
+configuration has also remained click-free in cold chimes, Assist replies and
+music tests on the target board. Captured software-side PCM and DMA traces did
+not establish the precise hardware-level cause of the original clicks; an
+underrun or data corruption should not be assumed from this result alone.
 
 Earlier 32-bit framing consumed twice as much DMA payload memory; it was not
 a codec requirement.

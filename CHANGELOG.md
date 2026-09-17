@@ -1,8 +1,12 @@
 # Changelog
 
-## Development
+## [2.0.0-beta.3] - 2026-09-17
 
-Changes after the second 2.0 public beta will be documented here.
+Third public beta of the 48 kHz dual-microphone firmware. This release moves
+the sparse-TDM implementation to the Audio Stack maintainer's development
+revision, requires ESPHome 2026.9.0, adds the project browser installer and
+makes the complete firmware configuration available through Device Builder's
+Take control flow.
 
 ### Added
 
@@ -17,8 +21,9 @@ Changes after the second 2.0 public beta will be documented here.
   full configuration, while the precompiled factory YAML remains a small
   provisioning and OTA wrapper. The former `base/core.yaml` split has been
   removed.
-- Require ESPHome 2026.9.0 for source and release builds and move from the
-  project fork to the maintainer's validated Audio Stack development revision.
+- Require ESPHome 2026.9.0 for source and release builds and move the Audio
+  Stack dependency from the project fork to the maintainer's validated
+  development revision.
   The upstream implementation queries the effective codec layout, packs only
   the selected TDM slots and services playback in bounded 256-sample AFE
   transport slices. On this board it selects 384-frame, 6-descriptor DMA while
@@ -30,6 +35,13 @@ Changes after the second 2.0 public beta will be documented here.
   timer as a seven-segment violet countdown instead of a generic pulse.
 - The volume-level display now uses a deep blue instead of cyan, keeping it
   distinct from violet Assist/timer states and red mute/error states.
+
+### Fixed
+
+- Keep Improv Serial in the complete public YAML so a Device Builder
+  `full_config` import validates without embedding an SSID or creating a
+  fallback access point. This allows Take control to materialize the editable
+  configuration while reusing credentials already provisioned on the board.
 
 ---
 

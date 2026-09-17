@@ -48,14 +48,15 @@ substitutions:
   # is why the "schematic says the keys are on 12" folklore is ignored here.
   amp_ctrl: '8'             # PA_EN / amplifier enable - ACTIVE HIGH
   key1_exio: '9'            # volume up  (active low, 10k hardware pull-up)
-  key2_exio: '10'           # stop ringing, otherwise play/pause
+  key2_exio: '10'           # contextual Assist/media action
   key3_exio: '11'           # volume down
 
   # ---------------------------------------------------------------------------
   # Home Assistant / network
   # ---------------------------------------------------------------------------
-  # Add `ssid` and `password` under `wifi:` for a manual source build. Leaving
-  # them absent permits Improv Serial provisioning in the universal image.
+  # Add `ssid` and `password` under `wifi:` to embed them in a source build.
+  # Leaving them absent permits Improv Serial provisioning and reuse of
+  # credentials already stored by a universal precompiled installation.
   hidden_ssid: 'false'      # true = fast_connect, required for a hidden SSID
 
   # Media player volume clamps (the onboard amp distorts near the top).

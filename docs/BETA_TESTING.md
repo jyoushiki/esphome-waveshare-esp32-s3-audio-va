@@ -41,6 +41,7 @@ This short sequence is the minimum useful beta report:
 
 | Test | Expected result |
 |---|---|
+| Browser installation | The project installer flashes the selected beta, exposes Wi-Fi provisioning after reconnecting and the device is discovered by Home Assistant |
 | Cold power-on | Board joins Wi-Fi and Home Assistant; startup sound has normal speed and pitch |
 | Managed update | Beta firmware detects an announced pre-release, installs it and returns online with Wi-Fi and saved settings intact |
 | Wake word | An enabled wake word is detected at normal speaking distance |
@@ -48,10 +49,10 @@ This short sequence is the minimum useful beta report:
 | Long command | The complete sentence reaches STT without losing its beginning or ending early |
 | Spoken reply | The full reply plays without crackle, acceleration or a stuck LED phase |
 | Volume controls | Key 1 raises and Key 3 lowers volume in 5% steps; the blue ring follows the level |
-| Media control | Key 2 toggles current music between play and pause when the device is not ringing |
+| Contextual action button | Key 2 stops ringing, an active Assist run or an announcement before falling back to music play/pause or manual Assist start |
 | Physical ring stop | Key 2 stops a voice timer or external ring request, including while the microphone is muted |
 | Physical mute | Boot toggles microphone mute; after a bright pulse the ring stays dim red and wake words are ignored while muted |
-| Voice timer | A timer counts down, rings and can be stopped |
+| Voice timer | The violet bar drains with the closest timer; it then rings and can be stopped |
 | External ringing | The Home Assistant `start_ringing` action rings locally and `stop_ringing` restores normal playback and LEDs |
 | Reset | The board returns to ready state and responds again |
 
@@ -132,6 +133,10 @@ These tests are useful but not required for every tester:
 - Play music for 30 minutes, then run Assist without rebooting first.
 - Run repeated music/announcement/Assist transitions while observing free
   memory and logs.
+- Optionally use Device Builder's **Take control** flow and confirm that it
+  creates the complete editable YAML rather than a remote package wrapper.
+  Taking control alone must not alter the running precompiled firmware; an
+  actual source build still requires a host with sufficient memory.
 
 Do not factory-reset the device merely for a beta test. A factory reset erases
 saved preferences and is not part of an ordinary update or rollback.

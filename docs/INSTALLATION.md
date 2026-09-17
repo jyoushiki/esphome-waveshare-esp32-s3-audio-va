@@ -96,6 +96,13 @@ After the board joins Wi-Fi:
 5. Enable `Hey Jarvis`, `Alexa` or `Hey Mycroft` from Home Assistant if desired.
    Their enabled states are saved in flash.
 
+> [!NOTE]
+> ESPHome Device Builder may also offer **Take control** after discovering the
+> device. This is not required for ordinary precompiled use or managed updates.
+> Use it only if you intend to edit, compile and install the YAML yourself; the
+> build has substantially higher host-memory requirements than normal ESPHome
+> configurations.
+
 ### Alternative: manual release download
 
 Use this route if the project installer is unavailable or you deliberately want
@@ -208,6 +215,27 @@ need a build host or ESPHome Device Builder for managed updates.
 Use this method only when you explicitly want to compile the firmware, modify
 its substitutions, add diagnostic packages or develop its code.
 
+### Optional: take control of a precompiled device
+
+An already provisioned precompiled device advertises its complete source
+configuration to ESPHome Device Builder. Selecting **Take control** creates a
+local, editable copy of `waveshare-va.yaml`, applies the chosen node and
+friendly names, and disables the automatic MAC suffix in that copy. It does not
+change the firmware currently running on the board until a build is successfully
+installed.
+
+The imported file retains `improv_serial`, so it validates without embedding a
+Wi-Fi network and can reuse the credentials already stored on the board. The
+first successful source-built installation replaces the universal factory
+profile; from that point the Stable/Beta managed-update entities are no longer
+included and updates are performed through Device Builder or the ESPHome CLI.
+
+In ESPHome 2026.9.0, the **Enable API encryption** checkbox in the Take control
+dialog is not applied to a `full_config` import. This firmware therefore remains
+unencrypted unless you add the documented `api.encryption` block and a unique
+key to your local configuration. Inspect the generated `api:` section instead
+of assuming the checkbox changed it.
+
 ### Requirements
 
 You need:
@@ -217,15 +245,16 @@ You need:
 - ESPHome 2026.9.0 or newer, using the ESP-IDF framework.
 - A USB data cable for the first installation.
 - A build host with enough memory for ESP-IDF, ESP-SR and the wake-word models.
-- `waveshare-va.yaml` and `secrets.yaml` in the same ESPHome configuration
-  directory.
+- `waveshare-va.yaml` in the ESPHome configuration directory, plus
+  `secrets.yaml` only if credentials or an API key are referenced from it.
 
 The build host needs internet access to fetch this repository, the external
 audio component, sound assets and wake-word models.
 
-### 1. Create `secrets.yaml`
+### 1. Optionally embed Wi-Fi credentials
 
-Copy `secrets.example.yaml` to `secrets.yaml` and enter the Wi-Fi credentials:
+When flashing an unprovisioned board from source, you may copy
+`secrets.example.yaml` to `secrets.yaml` and enter the Wi-Fi credentials:
 
 ```yaml
 wifi_ssid: "YOUR_WIFI_SSID"
@@ -235,11 +264,18 @@ wifi_password: "YOUR_WIFI_PASSWORD"
 Do not commit this file. If the credentials change, update this local copy
 before rebuilding or flashing.
 
+Skip this step when taking control of an already provisioned board and leave
+the existing `wifi:` block without `ssid` or `password`. Its Improv credentials
+remain stored across an ordinary OTA installation. A newly flashed source build
+can also be provisioned over USB through ESPHome Web because the complete YAML
+includes Improv Serial.
+
 ### 2. Prepare the editable device file
 
-Download `waveshare-va.yaml` from the release or pre-release tag you intend to
-build. Unlike the precompiled image, this file contains the complete firmware:
-you can inspect or modify any component directly.
+If you did not use Take control, download `waveshare-va.yaml` from the release
+or pre-release tag you intend to build. Unlike the precompiled image, this file
+contains the complete firmware: you can inspect or modify any component
+directly.
 
 Edit its existing `substitutions:` values as needed:
 
@@ -261,7 +297,7 @@ esphome:
   name_add_mac_suffix: false
 ```
 
-Add your local Wi-Fi secrets to the existing `wifi:` block:
+If using local Wi-Fi secrets, add them to the existing `wifi:` block:
 
 ```yaml
 wifi:
@@ -285,10 +321,11 @@ From a workstation with ESPHome installed:
 esphome run waveshare-va.yaml
 ```
 
-In Home Assistant's ESPHome Device Builder, place `waveshare-va.yaml` and
-`secrets.yaml` in its configuration directory, open the device and select
-**Install**. Use USB for the first flash; later source builds can use ESPHome's
-normal OTA service.
+In Home Assistant's ESPHome Device Builder, place `waveshare-va.yaml` and, when
+referenced, `secrets.yaml` in its configuration directory, open the device and
+select **Install**. A device created through Take control is already present in
+that directory. Use USB for the first flash; later source builds can use
+ESPHome's normal OTA service.
 
 A clean first build is large and can take several minutes. If the compiler ends
 with this message:
