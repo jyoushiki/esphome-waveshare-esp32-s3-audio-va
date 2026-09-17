@@ -126,9 +126,9 @@ jobs:
             .esphome/build/waveshare-voice/build/firmware.factory.bin
 
           # Put the factory entry point at the repository root so `esphome
-          # bundle` can include base/core.yaml in the optional source download.
+          # bundle` can resolve the public firmware include.
           cp prebuilt/waveshare-va.factory.yaml waveshare-va.factory.yaml
-          sed -i 's|!include ../base/core.yaml|!include base/core.yaml|' \
+          sed -i 's|!include ../waveshare-va.yaml|!include waveshare-va.yaml|' \
             waveshare-va.factory.yaml
 
           version="${FIRMWARE_VERSION#v}"

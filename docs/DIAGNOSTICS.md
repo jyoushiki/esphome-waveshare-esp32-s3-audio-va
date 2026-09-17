@@ -27,12 +27,11 @@ For a local checkout, add it as a second package:
 
 ```yaml
 packages:
-  core: !include base/core.yaml
   tdm_diagnostics: !include diagnostics/tdm-levels.yaml
 ```
 
-For a remotely fetched Git package, add `diagnostics/tdm-levels.yaml` to the
-same `files:` list as `base/core.yaml` and use the same repository revision.
+If the diagnostic file is not stored beside your editable configuration, it
+can instead be included as a remote Git package pinned to the same release tag.
 
 The entities expose RMS levels for checking that both microphones respond,
 that playback reaches the reference slot and that the unused slot remains near
@@ -57,12 +56,11 @@ For a local checkout:
 
 ```yaml
 packages:
-  core: !include base/core.yaml
   afe_runtime_diagnostics: !include diagnostics/afe-runtime.yaml
 ```
 
-For a remotely fetched Git package, add `diagnostics/afe-runtime.yaml` to the
-same `files:` list as `base/core.yaml` and select both files under `packages:`.
+If the diagnostic file is not stored beside your editable configuration, it
+can instead be included as a remote Git package pinned to the same release tag.
 
 A small non-zero startup value is not necessarily a fault. Record whether a
 counter **increases during the failing interaction**. Healthy operation should

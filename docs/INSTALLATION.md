@@ -235,43 +235,47 @@ wifi_password: "YOUR_WIFI_PASSWORD"
 Do not commit this file. If the credentials change, update this local copy
 before rebuilding or flashing.
 
-### 2. Prepare the thin device file
+### 2. Prepare the editable device file
 
-Copy `waveshare-va.yaml` and edit its `substitutions:` values as needed:
+Download `waveshare-va.yaml` from the release or pre-release tag you intend to
+build. Unlike the precompiled image, this file contains the complete firmware:
+you can inspect or modify any component directly.
+
+Edit its existing `substitutions:` values as needed:
 
 ```yaml
 substitutions:
   name: waveshare-voice
   friendly_name: "Waveshare Voice"
-  wifi_ssid: !secret wifi_ssid
-  wifi_password: !secret wifi_password
   volume_min: '0.4'
   volume_max: '0.8'
   hidden_ssid: 'false'
 ```
 
 `name` must be a valid ESPHome hostname. Changing it after Home Assistant has
-discovered the device may create new entity identifiers.
-
-Pin the package to the release or pre-release tag you intend to build:
+discovered the device may create new entity identifiers. To use the exact name
+instead of appending the board MAC address, also set:
 
 ```yaml
-packages:
-  core:
-    url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va
-    ref: <release-tag>
-    files:
-      - base/core.yaml
-    refresh: 1d
+esphome:
+  name_add_mac_suffix: false
 ```
 
-An immutable tag or full commit SHA produces a reproducible build. `dev` moves
-with active development and is appropriate only when intentionally testing the
-latest source. There is no separate `beta` branch: public betas are frozen by
-pre-release tags.
+Add your local Wi-Fi secrets to the existing `wifi:` block:
 
-Keep personal names and credentials only in the thin local file. Do not edit a
-downloaded `base/core.yaml` inside ESPHome's package cache.
+```yaml
+wifi:
+  id: wifi_id
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: ${hidden_ssid}
+```
+
+Keep personal names and credentials only in your local copy. The file at a tag
+is immutable and therefore provides the reproducible starting point that the
+old remote-package reference provided. `dev` remains appropriate only when
+intentionally testing current development. There is no separate `beta` branch:
+public betas are frozen by pre-release tags.
 
 ### 3. Build and install
 
@@ -297,8 +301,8 @@ the operating system killed the compiler because the build host ran out of
 memory. It is not a board failure. Use the recommended precompiled firmware or
 build on a machine with more available RAM or swap.
 
-After changing a tag, branch, commit or external-component revision, clean the
-build files once:
+After replacing the YAML with another release or changing an
+external-component revision, clean the build files once:
 
 ```bash
 esphome clean waveshare-va.yaml

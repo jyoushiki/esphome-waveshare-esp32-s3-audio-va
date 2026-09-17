@@ -1,6 +1,9 @@
 # Secrets — never commit Wi-Fi / API / OTA credentials
 secrets.yaml
 
+# Personal source-build wrapper (names, secrets and local overrides)
+waveshare-va.local.yaml
+
 # ESPHome build cache & artifacts
 .esphome/
 *.bin

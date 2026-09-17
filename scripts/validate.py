@@ -10,7 +10,7 @@ slow and a YAML typo does not deserve one. This catches, locally:
   * duplicate component `id:` values
 
     pip install pyyaml
-    python validate.py ../base/core.yaml
+    python validate.py ../waveshare-va.yaml
 
 Exit code is 1 if anything failed, so it works in a pre-commit hook.
 """

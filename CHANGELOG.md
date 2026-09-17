@@ -12,6 +12,11 @@ Changes after the second 2.0 public beta will be documented here.
 
 ### Changed
 
+- `waveshare-va.yaml` is now the complete, editable firmware configuration
+  instead of a thin package wrapper. Device Builder adoption materializes that
+  full configuration, while the precompiled factory YAML remains a small
+  provisioning and OTA wrapper. The former `base/core.yaml` split has been
+  removed.
 - Require ESPHome 2026.9.0 for source and release builds and move from the
   project fork to the maintainer's validated Audio Stack development revision.
   The upstream implementation queries the effective codec layout, packs only

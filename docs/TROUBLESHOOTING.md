@@ -14,10 +14,9 @@ Before changing audio settings:
 2. Capture logs from boot through the failure.
 3. Reproduce the problem twice before and twice after a change when possible.
 
-For a source build, also record the ESPHome version, confirm that
-`waveshare-va.yaml` fetches this repository rather than the original
-stock-ESPHome project, and clean after changing a branch, tag, commit or
-external-component revision:
+For a source build, also record the ESPHome version and the release tag or
+commit from which `waveshare-va.yaml` was downloaded. Clean after replacing the
+YAML or changing its external-component revision:
 
 ```bash
 esphome clean waveshare-va.yaml

@@ -1,34 +1,19 @@
 # Universal release build. This file contains no personal credentials and is
 # compiled once for distribution as a factory image.
 packages:
-  core: !include ../base/core.yaml
-
-substitutions:
-  name: waveshare-voice
-  friendly_name: "Waveshare Voice"
+  firmware: !include ../waveshare-va.yaml
 
 esphome:
-  # A single image can be installed on multiple boards without hostname
-  # collisions. Source builds remain free to use an exact personal name.
-  name_add_mac_suffix: true
   project:
     name: jyoushiki.waveshare-voice
     # The release workflow replaces this exact value with the GitHub tag.
     version: dev
 
-# Let ESPHome Device Builder offer to adopt the provisioned device. The public
-# thin configuration remains editable, while this factory-only wrapper is not
-# carried into later source builds.
+# Let ESPHome Device Builder adopt the provisioned device by materializing the
+# complete public configuration instead of another remote package wrapper.
 dashboard_import:
   package_import_url: github://jyoushiki/esphome-waveshare-esp32-s3-audio-va/waveshare-va.yaml@main
-  import_full_config: false
-
-# Remove the empty compile-time network from the core. Improv Serial supplies
-# and persists the end user's actual credentials after the first USB flash.
-wifi:
-  ssid: !remove
-  password: !remove
-  fast_connect: !remove
+  import_full_config: true
 
 improv_serial:
 

@@ -179,8 +179,8 @@ versioned together with the implementation:
 - **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
   map, measured DMA geometry, AEC reference and hardware bring-up findings.
 - **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
-- **[`base/core.yaml`](base/core.yaml)**: the annotated source of truth for the
-  current firmware behavior.
+- **[`waveshare-va.yaml`](waveshare-va.yaml)**: the complete, annotated and
+  editable firmware configuration.
 
 Michał's wiki documents his stock-ESPHome implementation. It remains useful for
 that project and for historical context, but it is not authoritative for this
@@ -196,14 +196,15 @@ pins**, and only one device can drive those clocks. Native ESPHome's independent
 microphone and speaker components cannot coordinate that peripheral while also
 exposing the ES7210 TDM channels needed for echo cancellation.
 
-The forked `esp_audio_stack` owns RX and TX together on a 48 kHz, four-slot,
+The external `esp_audio_stack` owns RX and TX together on a 48 kHz, four-slot,
 16-bit physical bus. It transfers TDM slots 0 and 2 as the two microphones and
 slot 1 as the analog playback reference through RX DMA, while TX DMA carries
 only speaker slot 0. Espressif's dual-mic AFE receives a synchronized 16 kHz
 conversion, performs AEC and dual-microphone Speech Enhancement/BSS, then
 applies post-AFE AGC and publishes processed mono audio to Micro Wake Word and
 Home Assistant. ESP-SR omits its separate NS stage from this dual-mic graph;
-playback remains at 48 kHz. The annotated configuration is in `base/core.yaml`.
+playback remains at 48 kHz. The annotated configuration is in
+[`waveshare-va.yaml`](waveshare-va.yaml).
 
 
 ## Repository layout
@@ -211,10 +212,10 @@ playback remains at 48 kHz. The annotated configuration is in `base/core.yaml`.
 ```
 prebuilt/
   waveshare-va.factory.yaml # credential-free universal release wrapper
-waveshare-va.yaml           # optional advanced source-build configuration
+waveshare-va.yaml           # complete editable firmware and source of truth
 secrets.example.yaml        # source builds: copy to secrets.yaml
 base/
-  core.yaml                 # shared firmware implementation
+  sounds/                   # bundled project-owned audio assets
 docs/
   INSTALLATION.md          # install, update, rollback and WAV capture
   USAGE.md                 # controls, entities and LED states
@@ -246,7 +247,7 @@ build through `waveshare-va.yaml`:
 | `boot_sound_file` | repo `startup.mp3` | The connect-to-HA chime. Any URL or local MP3/FLAC/WAV. |
 | `wake_chime_capture_delay` | `600ms` | Delay before Assist starts capturing after the wake chime begins; tune for custom sounds. |
 
-Pins and the audio format are substitutions too (in `base/core.yaml`), but you
+Pins and the audio format are substitutions too (in `waveshare-va.yaml`), but you
 should not need them unless you are porting to another board.
 
 ## Credits
