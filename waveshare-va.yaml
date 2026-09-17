@@ -176,6 +176,11 @@ wifi:
   on_disconnect:
     - script.execute: control_leds
 
+# Keep the complete source configuration valid without embedding credentials.
+# Precompiled installs and adopted Device Builder configurations both reuse the
+# Wi-Fi credentials provisioned over USB and stored on the board.
+improv_serial:
+
 logger:
   # Keep DEBUG compiled in for the runtime Logger Level selector, but avoid its
   # extra noise and formatting work during normal operation.

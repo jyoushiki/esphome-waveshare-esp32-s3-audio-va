@@ -15,8 +15,6 @@ dashboard_import:
   package_import_url: github://jyoushiki/esphome-waveshare-esp32-s3-audio-va/waveshare-va.yaml@main
   import_full_config: true
 
-improv_serial:
-
 # Precompiled installations can update themselves without requiring ESPHome or
 # enough host memory to rebuild this firmware. GitHub Pages avoids the long
 # redirects used by GitHub release download URLs.
