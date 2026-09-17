@@ -4,6 +4,12 @@
 
 Changes after the second 2.0 public beta will be documented here.
 
+### Added
+
+- A release-generated GitHub Pages installer powered by ESPHome `ewt-gen` and
+  ESP Web Tools. It flashes the same credential-free universal factory image
+  attached to the release directly from a compatible browser.
+
 ### Changed
 
 - Key 2 is now a contextual action button. In priority order it stops ringing,

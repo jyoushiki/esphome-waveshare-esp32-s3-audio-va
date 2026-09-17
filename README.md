@@ -148,6 +148,11 @@ The **precompiled release is the default and recommended route**. It can be
 installed through ESPHome Web, receives Wi-Fi credentials afterwards and
 supports managed stable or beta updates without ESPHome Device Builder.
 
+**[Open the browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
+in Chrome or Edge, connect the board over USB and select **Install**. The page
+shows the exact firmware version it will flash and is generated from the same
+universal binary attached to the GitHub release.
+
 See **[Installation and updates](docs/INSTALLATION.md)** for the illustrated
 first-flash procedure, Wi-Fi provisioning, update channels and recovery. The
 same guide documents the optional YAML route for developers and users who need

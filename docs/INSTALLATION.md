@@ -23,7 +23,63 @@ limits, hidden-SSID behavior, a custom boot-sound source or firmware changes.
 
 ## Recommended: install a precompiled release
 
-### 1. Choose stable or beta
+### 1. Open the browser installer
+
+Open the project's **[browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
+in a Chromium-based browser with Web Serial support, such as Chrome or Edge.
+Connect the board with a USB data cable, select **Install** and choose its serial
+port when prompted. The page displays the exact release version it will flash.
+
+The installer is generated with
+[`ewt-gen`](https://github.com/esphome/ewt-gen) and ESP Web Tools from the same
+credential-free universal image attached to the corresponding GitHub release.
+No firmware compilation or ESPHome Device Builder is required.
+
+The page follows the most recently published firmware release. During the 2.0
+public-beta period this is a beta image; its version is shown before flashing.
+Normal and beta managed-update channels can be selected after installation.
+
+### 2. Install and provision Wi-Fi
+
+Wait for installation and reboot to complete. If the installation dialog offers
+Wi-Fi provisioning, enter the board's network credentials there. Otherwise,
+reconnect to the board and use ESPHome Web's **Configure Wi-Fi** button:
+
+<img src="wifi.png"
+     alt="ESPHome Web Configure Wi-Fi button"
+     width="500">
+
+The firmware accepts the credentials through **Improv Serial** and stores them
+on the board; no Wi-Fi password is embedded in the downloadable image.
+
+The universal image appends the board's MAC suffix to its hostname, producing
+a name similar to `waveshare-voice-b2b31c`. This allows the same binary to be
+installed on multiple boards without hostname or entity collisions.
+
+Close serial monitors and other applications using the port first. If the
+installer remains at `Connecting` or reports that the device was lost,
+disconnect and reconnect the board and try again. Browser privacy protections
+can interfere with Web Serial; retry in Chrome or Edge before diagnosing the
+firmware.
+
+### 3. Add it to Home Assistant
+
+After the board joins Wi-Fi:
+
+1. Add or accept the discovered ESPHome integration.
+2. Assign the desired Assist pipeline when Home Assistant prompts for it.
+3. Wait for the one-shot startup sound.
+4. Say **OK Nabu**. It is the first configured model and therefore the only one
+   enabled on a new installation by default.
+5. Enable `Hey Jarvis`, `Alexa` or `Hey Mycroft` from Home Assistant if desired.
+   Their enabled states are saved in flash.
+
+### Alternative: manual release download
+
+Use this route if the project installer is unavailable or you deliberately want
+to install a different published version.
+
+#### Choose stable or beta
 
 - A normal GitHub release is the **stable** channel.
 - A GitHub pre-release is the public **beta** channel. Anyone may test it.
@@ -39,7 +95,7 @@ Download `waveshare-voice-esp32s3.factory.bin` from the selected entry on the
 Use the `.factory.bin` file for a USB installation. The `.ota.bin` asset is for
 the firmware's managed updater and must not be selected for the first flash.
 
-### 2. Flash it over USB
+#### Flash it over USB
 
 1. Open [ESPHome Web](https://web.esphome.io/) in a Chromium-based browser with
    Web Serial support, such as Chrome or Edge.
@@ -70,7 +126,7 @@ disconnect and reconnect the board and try again. Browser privacy protections
 can interfere with Web Serial; retry in Chrome or Edge before diagnosing the
 firmware.
 
-### 3. Provision Wi-Fi
+#### Provision Wi-Fi
 
 Reconnect to the board if necessary, then use ESPHome Web's **Configure Wi-Fi**
 button:
@@ -86,7 +142,7 @@ The universal image appends the board's MAC suffix to its hostname, producing
 a name similar to `waveshare-voice-b2b31c`. This allows the same binary to be
 installed on multiple boards without hostname or entity collisions.
 
-### 4. Add it to Home Assistant
+#### Add it to Home Assistant
 
 After the board joins Wi-Fi:
 
