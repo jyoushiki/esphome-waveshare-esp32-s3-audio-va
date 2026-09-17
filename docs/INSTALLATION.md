@@ -13,7 +13,7 @@ install future releases without compiling ESPHome.
 | Method | Recommended for | Requirements | Compile-time customization |
 |---|---|---|---|
 | Precompiled release | Almost every user | Board, USB data cable, compatible browser and Home Assistant | No; use the firmware defaults and its Home Assistant entities |
-| Source/YAML build | Developers and users who need different substitutions or firmware code | ESPHome 2026.8.0+, a sufficiently capable build host, YAML and local secrets | Yes |
+| Source/YAML build | Developers and users who need different substitutions or firmware code | ESPHome 2026.9.0+, a sufficiently capable build host, YAML and local secrets | Yes |
 
 Both methods expose the normal runtime controls in Home Assistant, including
 wake words, sensitivity, post-AFE microphone gain, microphone mute, sounds,
@@ -214,7 +214,7 @@ You need:
 
 - A Waveshare ESP32-S3-AUDIO-Board with its onboard 8 MB octal PSRAM.
 - Home Assistant with an Assist pipeline.
-- ESPHome 2026.8.0 or newer, using the ESP-IDF framework.
+- ESPHome 2026.9.0 or newer, using the ESP-IDF framework.
 - A USB data cable for the first installation.
 - A build host with enough memory for ESP-IDF, ESP-SR and the wake-word models.
 - `waveshare-va.yaml` and `secrets.yaml` in the same ESPHome configuration

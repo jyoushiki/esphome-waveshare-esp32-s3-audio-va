@@ -84,8 +84,9 @@ substitutions:
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
-  # channel_colors (used by the status ring below) requires ESPHome 2026.8.0+.
-  min_version: 2026.8.0
+  # The upstream audio-stack development line uses ESPHome's 2026.9 audio and
+  # PSRAM-DMA foundations.
+  min_version: 2026.9.0
   on_boot:
     # Publish a "no timer" placeholder and paint the ring as early as we can, so
     # the device shows life while Wi-Fi/API are still coming up.
@@ -152,10 +153,10 @@ psram:
   ignore_not_found: false
 
 # Full-duplex TDM ownership plus Espressif's software Audio Front End. This
-# tested fork revision builds on v2026.9.2 and adds direction-specific sparse
-# TDM DMA (upstream PR #14).
+# upstream development revision incorporates sparse TDM DMA and bounded AFE
+# transport slices validated on this board with ESPHome 2026.9.0.
 external_components:
-  - source: github://jyoushiki/esphome-audio-stack@373be4d5de7ad6c3f6282a64e5487751571d9a1d
+  - source: github://n-IA-hane/esphome-audio-stack@22e1da9e074b1618aa128dec630e6fab748acea0
     components: [esp_audio_stack, esp_afe]
 
 network:

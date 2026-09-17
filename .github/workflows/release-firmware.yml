@@ -27,7 +27,7 @@ jobs:
     uses: esphome/workflows/.github/workflows/build.yml@0fdd5e311b7e744069166696072a1a9cbc5fbeb6
     with:
       files: prebuilt/waveshare-va.factory.yaml
-      esphome-version: 2026.8.2
+      esphome-version: 2026.9.0
       release-version: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
       release-summary: ${{ github.event_name == 'release' && github.event.release.body || '' }}
       release-url: ${{ github.event_name == 'release' && github.event.release.html_url || '' }}
@@ -138,7 +138,7 @@ jobs:
 
           uvx \
             --from 'git+https://github.com/esphome/ewt-gen.git@1f1f7491fd384dff8b743877a6be2f36e8d60c33' \
-            --with 'esphome==2026.8.2' \
+            --with 'esphome==2026.9.0' \
             ewt-gen waveshare-va.factory.yaml \
             --skip-compile \
             --fw-version "$version" \

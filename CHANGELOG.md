@@ -12,6 +12,12 @@ Changes after the second 2.0 public beta will be documented here.
 
 ### Changed
 
+- Require ESPHome 2026.9.0 for source and release builds and move from the
+  project fork to the maintainer's validated Audio Stack development revision.
+  The upstream implementation queries the effective codec layout, packs only
+  the selected TDM slots and services playback in bounded 256-sample AFE
+  transport slices. On this board it selects 384-frame, 6-descriptor DMA while
+  preserving 48 kHz, 16-bit, four-slot physical TDM operation.
 - Key 2 is now a contextual action button. In priority order it stops ringing,
   cancels an active Assist interaction, stops an announcement, toggles music
   playback, or starts Assist manually when idle and the microphone is unmuted.
