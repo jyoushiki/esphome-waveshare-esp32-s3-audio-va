@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation and troubleshooting documentation
+    url: https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/blob/main/docs/TROUBLESHOOTING.md
+    about: Check the symptom-specific guidance before filing a report.

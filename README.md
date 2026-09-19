@@ -27,6 +27,10 @@ speech front end.
 > 16 kHz layout. Active development continues on `dev`; there is no separate
 > beta branch.
 
+Found a problem or completed a beta test? Use the repository's
+**[issue forms](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/issues/new/choose)**
+for a bug report, beta result or feature proposal.
+
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
          (wake word + audio)      (STT / LLM / TTS)

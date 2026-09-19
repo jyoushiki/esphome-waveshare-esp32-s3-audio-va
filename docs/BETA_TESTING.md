@@ -193,3 +193,6 @@ speech before publishing any file.
 Follow the symptom-specific checks in the
 [troubleshooting guide](TROUBLESHOOTING.md) before opening an issue. State
 clearly when an item was not tested instead of treating it as a pass.
+
+Submit the result using the repository's
+[beta test report form](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/issues/new?template=beta-report.yml).

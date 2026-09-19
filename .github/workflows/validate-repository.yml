@@ -1,0 +1,38 @@
+name: Validate repository
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Configuration and packaging checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Validate YAML structure
+        run: >-
+          uv run --no-project --with pyyaml
+          python scripts/validate.py
+          waveshare-va.yaml
+          prebuilt/waveshare-va.factory.yaml
+          .github/ISSUE_TEMPLATE/bug-report.yml
+          .github/ISSUE_TEMPLATE/beta-report.yml
+          .github/ISSUE_TEMPLATE/feature-request.yml
+          .github/ISSUE_TEMPLATE/config.yml
+
+      - name: Test release packaging
+        run: python -m unittest discover --start-directory tests --verbose
+

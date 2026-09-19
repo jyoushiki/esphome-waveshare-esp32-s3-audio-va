@@ -121,14 +121,10 @@ jobs:
         run: |-
           # ewt-gen expects the build output beside the source YAML. Reuse the
           # already-built release image instead of compiling a second binary.
+          # The channel preparation step has already located it recursively,
+          # verified its hashes and normalized its output path.
           mkdir -p .esphome/build/waveshare-voice/build
-          factory_bin="$(find current-firmware -type f \
-            -name 'waveshare-voice-esp32s3.factory.bin' -print -quit)"
-          if [ -z "$factory_bin" ]; then
-            echo "Factory binary not found in downloaded firmware artifact" >&2
-            exit 1
-          fi
-          cp "$factory_bin" \
+          cp site/firmware/beta/waveshare-voice-esp32s3.factory.bin \
             .esphome/build/waveshare-voice/build/firmware.factory.bin
 
           # Put the factory entry point at the repository root so `esphome

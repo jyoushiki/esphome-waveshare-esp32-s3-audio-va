@@ -1,0 +1,71 @@
+name: Beta test report
+description: Share a successful or failed public-beta test run
+title: "[Beta]: "
+labels:
+  - beta-feedback
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Pre-release version
+      placeholder: v2.0.0-beta.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - Fresh precompiled browser installation
+        - Managed OTA update from an earlier beta
+        - Source build from the release tag
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Test environment
+      description: Include Home Assistant version, board revision if known, Assist pipeline/STT/TTS, wake-word model and relevant network layout.
+    validations:
+      required: true
+
+  - type: textarea
+    id: results
+    attributes:
+      label: Test results
+      description: Mark the basic tests as PASS, FAIL or NOT TESTED and list any extended tests performed.
+      value: |
+        Browser installation: NOT TESTED
+        Cold power-on: NOT TESTED
+        Managed update: NOT TESTED
+        Wake word: NOT TESTED
+        Short command: NOT TESTED
+        Long command: NOT TESTED
+        Spoken reply: NOT TESTED
+        Volume controls: NOT TESTED
+        Contextual action button: NOT TESTED
+        Physical mute: NOT TESTED
+        Voice timer: NOT TESTED
+        External ringing: NOT TESTED
+        Reset: NOT TESTED
+
+        Extended tests performed:
+    validations:
+      required: true
+
+  - type: textarea
+    id: observations
+    attributes:
+      label: Observations
+      description: Describe failures, intermittent behavior, or anything that differed from the documented result. Successful reports are useful too.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed credentials, tokens, private URLs and unrelated speech from attachments.
+          required: true
+

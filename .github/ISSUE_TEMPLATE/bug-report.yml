@@ -1,0 +1,90 @@
+name: Bug report
+description: Report a reproducible firmware, installation or update problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the firmware. Please reproduce the problem at least twice when possible and remove credentials, tokens, private URLs and unrelated speech from anything you attach.
+
+  - type: input
+    id: version
+    attributes:
+      label: Installed firmware version
+      description: Use the release tag or the project version reported by the device.
+      placeholder: v2.0.0-beta.3
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation method
+      options:
+        - Precompiled browser installation
+        - Managed OTA update
+        - ESPHome Device Builder source build
+        - ESPHome CLI source build
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include Home Assistant version, board revision if known, Assist pipeline/STT/TTS, enabled wake word and ESPHome version for source builds.
+      placeholder: |
+        Home Assistant:
+        Board revision:
+        STT / TTS:
+        Wake word:
+        ESPHome compiler (source builds only):
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Start from a known device state and list the smallest sequence that reproduces the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: result
+    attributes:
+      label: Observed and expected result
+      placeholder: |
+        Observed:
+        Expected:
+        Reproduction rate:
+        Recovery required:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or recordings
+      description: Paste the log from before the first symptom through recovery. Attach a short WAV only when it explains an audio-path problem.
+      render: shell
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Additional diagnostics
+      description: State whether AFE counters changed, whether the failure followed a cold boot or OTA update, and any comparison already performed.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the troubleshooting guide and searched existing issues.
+          required: true
+        - label: I removed Wi-Fi credentials, API keys, tokens, private URLs and unrelated speech.
+          required: true
+
