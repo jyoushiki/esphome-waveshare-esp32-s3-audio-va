@@ -156,7 +156,7 @@ psram:
   ignore_not_found: false
 
 # Full-duplex TDM ownership plus Espressif's software Audio Front End. This
-# This upstream development revision incorporates the sparse TDM transport
+# upstream development revision incorporates the sparse TDM transport
 # validated on this board and prevents ESP-SR 2.5.4 from retaining the unused
 # NSNet3 model in internal RAM when WebRTC noise suppression is selected.
 external_components:
