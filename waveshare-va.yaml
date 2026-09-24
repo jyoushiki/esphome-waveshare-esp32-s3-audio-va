@@ -128,6 +128,10 @@ esp32:
   framework:
     type: esp-idf
     version: recommended
+    # Keep source builds reproducible. ESP-SR 2.5.5 fixes the NSNet3 memory
+    # regression that caused 2.5.4 to be withdrawn.
+    components:
+      - espressif/esp-sr==2.5.5
     advanced:
       compiler_optimization: PERF
     sdkconfig_options:
@@ -156,9 +160,8 @@ psram:
   ignore_not_found: false
 
 # Full-duplex TDM ownership plus Espressif's software Audio Front End. This
-# upstream development revision incorporates the sparse TDM transport
-# validated on this board and prevents ESP-SR 2.5.4 from retaining the unused
-# NSNet3 model in internal RAM when WebRTC noise suppression is selected.
+# upstream development revision incorporates the sparse TDM transport validated
+# on this board and remains compatible with the pinned ESP-SR release above.
 external_components:
   - source: github://n-IA-hane/esphome-audio-stack@5608d01b2161deeb11ad9295569e4c1efc946f86
     components: [esp_audio_stack, esp_afe]
