@@ -272,9 +272,10 @@ includes Improv Serial.
 
 ### 2. Prepare the editable device file
 
-If you did not use Take control, download `waveshare-va.yaml` from the release
-or pre-release tag you intend to build. Unlike the precompiled image, this file
-contains the complete firmware: you can inspect or modify any component
+If you did not use Take control, download the attached `waveshare-va.yaml` from
+the GitHub release or pre-release you intend to build. The attachment is the
+exact configuration from that release tag. Unlike the precompiled image, it
+contains the complete firmware, so you can inspect or modify any component
 directly.
 
 Edit its existing `substitutions:` values as needed:

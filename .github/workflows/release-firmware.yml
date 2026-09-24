@@ -42,6 +42,22 @@ jobs:
     with:
       version: ${{ needs.build.outputs.version }}
 
+  upload_source_yaml:
+    name: Attach editable YAML to release
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout released revision
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+
+      - name: Upload editable configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" waveshare-va.yaml --clobber
+
   publish_channels:
     name: Publish installer and OTA channels
     if: >-
