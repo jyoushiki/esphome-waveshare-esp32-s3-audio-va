@@ -14,7 +14,7 @@ body:
     attributes:
       label: Installed firmware version
       description: Use the release tag or the project version reported by the device.
-      placeholder: v2.0.0-beta.3
+      placeholder: v2.0.0-beta.4
     validations:
       required: true
 
@@ -87,4 +87,3 @@ body:
           required: true
         - label: I removed Wi-Fi credentials, API keys, tokens, private URLs and unrelated speech.
           required: true
-

@@ -18,14 +18,13 @@ speech front end.
 > repository's documentation describes this firmware only.
 
 > [!IMPORTANT]
-> **Release status:** `v2.0.0-beta.3` is the current public beta of the 48 kHz TDM
-> architecture described below. It moves sparse TDM to the Audio Stack
-> maintainer's ESPHome 2026.9 development revision, adds the project browser
-> installer and makes the full editable YAML available through Device Builder.
-> It is published as a GitHub pre-release with precompiled installation and
-> managed beta updates. `v1.1.0` remains the last stable tag and uses the earlier
-> 16 kHz layout. Active development continues on `dev`; there is no separate
-> beta branch.
+> **Release status:** `v2.0.0-beta.4` is the current public beta of the 48 kHz TDM
+> architecture described below. It pins ESP-SR 2.5.5 and a compatible Audio
+> Stack revision, fixing the internal-RAM exhaustion seen when beta.3 was rebuilt
+> from source after ESP-SR 2.5.4 was published. It is distributed as a GitHub
+> pre-release with precompiled installation and managed beta updates. `v1.1.0`
+> remains the last stable tag and uses the earlier 16 kHz layout. Active
+> development continues on `dev`; there is no separate beta branch.
 
 Found a problem or completed a beta test? Use the repository's
 **[issue forms](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/issues/new/choose)**

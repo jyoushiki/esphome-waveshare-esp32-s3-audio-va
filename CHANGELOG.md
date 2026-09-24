@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.0.0-beta.4] - 2026-09-24
+
+Fourth public beta of the 48 kHz dual-microphone firmware. This release fixes
+the ESP-SR dependency regression that could make a fresh source build exhaust
+internal RAM, and pins the validated dependency set for reproducible builds.
+
+### Added
+
+- Dedicated GitHub issue forms for bug reports, beta results and feature
+  requests.
+- Repository validation for YAML structure and release-channel packaging.
+
+### Changed
+
+- Pin ESP-SR 2.5.5. Espressif withdrew 2.5.4 after fixing its NSNet3 memory
+  handling and reducing the linked binary size in 2.5.5.
+- Update the pinned Audio Stack development revision to
+  `5608d01b2161deeb11ad9295569e4c1efc946f86`. Its WebRTC-only model-selection
+  adapter prevents unused neural noise-suppression archives from being retained
+  and remains compatible with ESP-SR 2.5.5.
+
+### Fixed
+
+- Fresh source builds made after beta.3 could resolve ESP-SR 2.5.4 and retain
+  about 117 KiB of unused NSNet3 weights in internal RAM. On the target board
+  this left too little memory for an audio-effects buffer, followed by I2S and
+  Wi-Fi failures. The precompiled beta.3 image was not affected because it had
+  been built earlier with ESP-SR 2.5.3.
+- Make browser-installer channel preparation consume the normalized, verified
+  factory artifact and cover the packaging path with automated tests.
+
+---
+
 ## [2.0.0-beta.3] - 2026-09-17
 
 Third public beta of the 48 kHz dual-microphone firmware. This release moves

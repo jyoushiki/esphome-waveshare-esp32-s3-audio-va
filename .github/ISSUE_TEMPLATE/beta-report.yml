@@ -8,7 +8,7 @@ body:
     id: version
     attributes:
       label: Pre-release version
-      placeholder: v2.0.0-beta.3
+      placeholder: v2.0.0-beta.4
     validations:
       required: true
 
@@ -68,4 +68,3 @@ body:
       options:
         - label: I removed credentials, tokens, private URLs and unrelated speech from attachments.
           required: true
-
