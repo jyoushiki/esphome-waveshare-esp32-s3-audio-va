@@ -160,10 +160,10 @@ psram:
   ignore_not_found: false
 
 # Full-duplex TDM ownership plus Espressif's software Audio Front End. This
-# upstream development revision incorporates the sparse TDM transport validated
-# on this board and remains compatible with the pinned ESP-SR release above.
+# pinned upstream release incorporates the sparse TDM transport validated on
+# this board and remains compatible with the pinned ESP-SR release above.
 external_components:
-  - source: github://n-IA-hane/esphome-audio-stack@5608d01b2161deeb11ad9295569e4c1efc946f86
+  - source: github://n-IA-hane/esphome-audio-stack@v2026.10.0
     components: [esp_audio_stack, esp_afe]
 
 network:

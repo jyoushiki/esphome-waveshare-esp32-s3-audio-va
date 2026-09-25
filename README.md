@@ -47,7 +47,7 @@ configuration source for the other.
 | Physical playback | 48 kHz, four 16-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
 | Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
 | Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
-| Dependencies | External `esphome-audio-stack`, pinned to a hardware-tested upstream development revision | Pure stock ESPHome; no external audio component |
+| Dependencies | External `esphome-audio-stack`, pinned to a hardware-tested upstream release | Pure stock ESPHome; no external audio component |
 | Main advantage | Better use of this board's audio hardware, echo handling and 48 kHz output | Simpler build, fewer moving parts and easier alignment with stock ESPHome |
 | Main tradeoff | More code, RAM pressure, build time and hardware-specific complexity | Lower playback bandwidth and no use of the board's analog reference for AEC |
 
