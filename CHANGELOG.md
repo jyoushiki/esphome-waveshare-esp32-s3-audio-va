@@ -1,5 +1,43 @@
 # Changelog
 
+## [2.0.0-beta.5] - 2026-10-09
+
+Fifth public beta of the 48 kHz dual-microphone firmware. This release adds a
+stricter wake-word preset for noisy rooms, per-model manual tuning and the
+benchmarks used to choose and document those thresholds.
+
+### Added
+
+- A **Least sensitive** preset for Okay Nabu, Hey Jarvis, Alexa and Hey
+  Mycroft. Each model uses its own cutoff.
+- Disabled-by-default probability-cutoff entities for manual per-device tuning.
+  Changing one selects the new **Custom** sensitivity mode; selecting a normal
+  preset restores all four measured values.
+- Reproducible wake-word benchmarks covering all 35 DiPCo far-field channels
+  and a speaker-disjoint synthetic positive corpus. The repository includes the
+  scripts, pinned manifests, machine-readable results and a guide explaining
+  how the cutoffs were selected.
+- The complete editable `waveshare-va.yaml` as a release attachment for users
+  who prefer to build or modify the firmware themselves.
+
+### Changed
+
+- Update the pinned dependency to
+  [ESPHome Audio Stack v2026.10.2](https://github.com/n-IA-hane/esphome-audio-stack/releases/tag/v2026.10.2),
+  replacing the development revision used by beta.4. The upstream 10.1 and
+  10.2 updates send processed AFE samples directly from the fetch task to the
+  output FIFO, removing an extra handoff before wake-word and Assist consumers,
+  add on-demand runtime diagnostics, test failure cleanup and retries, and
+  prevent a failed reopen from exposing a stale codec layout.
+  Audio Stack is authored and maintained by
+  [n-IA-hane](https://github.com/n-IA-hane). Its 2026.10.0 release also credits
+  my earlier sparse-TDM proposal, measurements and hardware testing.
+- Add measured VAD-gated false-accept rates to every built-in sensitivity
+  preset. The existing Slightly, Moderately and Very sensitive cutoffs are
+  unchanged.
+
+---
+
 ## [2.0.0-beta.4] - 2026-09-24
 
 Fourth public beta of the 48 kHz dual-microphone firmware. This release fixes

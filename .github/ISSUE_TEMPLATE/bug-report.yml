@@ -14,7 +14,7 @@ body:
     attributes:
       label: Installed firmware version
       description: Use the release tag or the project version reported by the device.
-      placeholder: v2.0.0-beta.4
+      placeholder: v2.0.0-beta.5
     validations:
       required: true
 
