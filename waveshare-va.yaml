@@ -844,32 +844,72 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+  # Prevent preset-driven number updates from selecting Custom recursively.
+  - id: applying_wake_word_preset
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
 script:
   - id: apply_wake_word_sensitivity
     mode: restart
     then:
       - lambda: |-
-          // The okay_nabu, hey_jarvis and hey_mycroft thresholds were calibrated
-          // by the Home Assistant Voice PE project against all units and channels
-          // of the Dinner Party Corpus (DipCo).
           const auto x = id(wake_word_sensitivity).current_option();
 
-          if (x == "Slightly sensitive") {
-            id(hey_jarvis).set_probability_cutoff(247);  // 0.97
-            id(alexa).set_probability_cutoff(230);       // 0.90
-            id(okay_nabu).set_probability_cutoff(217);   // 0.85
-            id(hey_mycroft).set_probability_cutoff(253); // 0.99
-          } else if (x == "Moderately sensitive") {
-            id(hey_jarvis).set_probability_cutoff(235);  // 0.92
-            id(alexa).set_probability_cutoff(191);       // 0.75
-            id(okay_nabu).set_probability_cutoff(176);   // 0.69
-            id(hey_mycroft).set_probability_cutoff(242); // 0.95
-          } else if (x == "Very sensitive") {
-            id(hey_jarvis).set_probability_cutoff(212);  // 0.83
-            id(alexa).set_probability_cutoff(128);       // 0.50
-            id(okay_nabu).set_probability_cutoff(143);   // 0.56
-            id(hey_mycroft).set_probability_cutoff(237); // 0.93
+          auto set_number = [](auto *number, uint8_t cutoff) {
+            auto call = number->make_call();
+            call.set_value(cutoff / 255.0f);
+            call.perform();
+          };
+          auto apply_custom = [](auto *model, auto *number) {
+            const float bounded = std::max(0.0f, std::min(254.0f / 255.0f, number->state));
+            const auto cutoff = static_cast<uint8_t>(bounded * 255.0f + 0.5f);
+            model->set_probability_cutoff(cutoff);
+            number->publish_state(cutoff / 255.0f);
+          };
+
+          if (x == "Custom") {
+            apply_custom(id(okay_nabu), id(okay_nabu_probability_cutoff));
+            apply_custom(id(hey_jarvis), id(hey_jarvis_probability_cutoff));
+            apply_custom(id(alexa), id(alexa_probability_cutoff));
+            apply_custom(id(hey_mycroft), id(hey_mycroft_probability_cutoff));
+          } else {
+            uint8_t okay_nabu_cutoff;
+            uint8_t hey_jarvis_cutoff;
+            uint8_t alexa_cutoff;
+            uint8_t hey_mycroft_cutoff;
+
+            if (x == "Least sensitive") {
+              // No false accepts were observed at these operating points in a
+              // public 10.7-hour DiPCo sweep of these four model revisions.
+              okay_nabu_cutoff = 247;   // 0.969
+              hey_jarvis_cutoff = 253;  // 0.992
+              alexa_cutoff = 242;       // 0.949
+              hey_mycroft_cutoff = 254; // 0.996
+            } else if (x == "Slightly sensitive") {
+              okay_nabu_cutoff = 217;   // 0.851
+              hey_jarvis_cutoff = 247;  // 0.969
+              alexa_cutoff = 230;       // 0.902
+              hey_mycroft_cutoff = 253; // 0.992
+            } else if (x == "Moderately sensitive") {
+              okay_nabu_cutoff = 176;   // 0.690
+              hey_jarvis_cutoff = 235;  // 0.922
+              alexa_cutoff = 191;       // 0.749
+              hey_mycroft_cutoff = 242; // 0.949
+            } else {
+              okay_nabu_cutoff = 143;   // 0.561
+              hey_jarvis_cutoff = 212;  // 0.831
+              alexa_cutoff = 128;       // 0.502
+              hey_mycroft_cutoff = 237; // 0.929
+            }
+
+            id(applying_wake_word_preset) = true;
+            set_number(id(okay_nabu_probability_cutoff), okay_nabu_cutoff);
+            set_number(id(hey_jarvis_probability_cutoff), hey_jarvis_cutoff);
+            set_number(id(alexa_probability_cutoff), alexa_cutoff);
+            set_number(id(hey_mycroft_probability_cutoff), hey_mycroft_cutoff);
+            id(applying_wake_word_preset) = false;
           }
 
           ESP_LOGI(
@@ -1122,12 +1162,13 @@ select:
     restore_value: true
     entity_category: config
     options:
+      - Least sensitive
       - Slightly sensitive
       - Moderately sensitive
       - Very sensitive
-    # Probability cutoffs are quantised uint8 (255 = 1.0); the comment on each
-    # line is the floating point value. FAPH = false accepts per hour measured
-    # against the Dinner Party Corpus. Values apply to the models pinned above.
+      - Custom
+    # Presets use model-specific quantised probability cutoffs. The advanced
+    # number entities below expose those values and select Custom when changed.
     on_value:
       - script.execute: apply_wake_word_sensitivity
 
@@ -1312,6 +1353,117 @@ number:
       name: "Mic gain (post-AFE)"
       min_value: -20.0
       max_value: 30.0
+
+  # Advanced per-model microWakeWord controls. Values map to the component's
+  # uint8 probability cutoff. 255/255 is deliberately excluded: detection uses
+  # a strict greater-than comparison, so that value could never trigger.
+  - platform: template
+    id: okay_nabu_probability_cutoff
+    name: "Okay Nabu probability cutoff"
+    icon: mdi:waveform
+    entity_category: config
+    disabled_by_default: true
+    restore_value: true
+    initial_value: 0.8509803922
+    min_value: 0.0
+    max_value: 0.9960784314
+    step: 0.004
+    mode: box
+    set_action:
+      - lambda: |-
+          const auto cutoff = static_cast<uint8_t>(
+            std::max(0.0f, std::min(254.0f / 255.0f, x)) * 255.0f + 0.5f
+          );
+          id(okay_nabu).set_probability_cutoff(cutoff);
+          id(okay_nabu_probability_cutoff).publish_state(cutoff / 255.0f);
+      - if:
+          condition:
+            lambda: return !id(applying_wake_word_preset);
+          then:
+            - select.set:
+                id: wake_word_sensitivity
+                option: Custom
+
+  - platform: template
+    id: hey_jarvis_probability_cutoff
+    name: "Hey Jarvis probability cutoff"
+    icon: mdi:waveform
+    entity_category: config
+    disabled_by_default: true
+    restore_value: true
+    initial_value: 0.9686274510
+    min_value: 0.0
+    max_value: 0.9960784314
+    step: 0.004
+    mode: box
+    set_action:
+      - lambda: |-
+          const auto cutoff = static_cast<uint8_t>(
+            std::max(0.0f, std::min(254.0f / 255.0f, x)) * 255.0f + 0.5f
+          );
+          id(hey_jarvis).set_probability_cutoff(cutoff);
+          id(hey_jarvis_probability_cutoff).publish_state(cutoff / 255.0f);
+      - if:
+          condition:
+            lambda: return !id(applying_wake_word_preset);
+          then:
+            - select.set:
+                id: wake_word_sensitivity
+                option: Custom
+
+  - platform: template
+    id: alexa_probability_cutoff
+    name: "Alexa probability cutoff"
+    icon: mdi:waveform
+    entity_category: config
+    disabled_by_default: true
+    restore_value: true
+    initial_value: 0.9019607843
+    min_value: 0.0
+    max_value: 0.9960784314
+    step: 0.004
+    mode: box
+    set_action:
+      - lambda: |-
+          const auto cutoff = static_cast<uint8_t>(
+            std::max(0.0f, std::min(254.0f / 255.0f, x)) * 255.0f + 0.5f
+          );
+          id(alexa).set_probability_cutoff(cutoff);
+          id(alexa_probability_cutoff).publish_state(cutoff / 255.0f);
+      - if:
+          condition:
+            lambda: return !id(applying_wake_word_preset);
+          then:
+            - select.set:
+                id: wake_word_sensitivity
+                option: Custom
+
+  - platform: template
+    id: hey_mycroft_probability_cutoff
+    name: "Hey Mycroft probability cutoff"
+    icon: mdi:waveform
+    entity_category: config
+    disabled_by_default: true
+    restore_value: true
+    initial_value: 0.9921568627
+    min_value: 0.0
+    max_value: 0.9960784314
+    step: 0.004
+    mode: box
+    set_action:
+      - lambda: |-
+          const auto cutoff = static_cast<uint8_t>(
+            std::max(0.0f, std::min(254.0f / 255.0f, x)) * 255.0f + 0.5f
+          );
+          id(hey_mycroft).set_probability_cutoff(cutoff);
+          id(hey_mycroft_probability_cutoff).publish_state(cutoff / 255.0f);
+      - if:
+          condition:
+            lambda: return !id(applying_wake_word_preset);
+          then:
+            - select.set:
+                id: wake_word_sensitivity
+                option: Custom
 
   - platform: template
     id: led_ring_brightness
