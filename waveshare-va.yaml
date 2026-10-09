@@ -163,7 +163,7 @@ psram:
 # pinned upstream release incorporates the sparse TDM transport validated on
 # this board and remains compatible with the pinned ESP-SR release above.
 external_components:
-  - source: github://n-IA-hane/esphome-audio-stack@v2026.10.0
+  - source: github://n-IA-hane/esphome-audio-stack@v2026.10.2
     components: [esp_audio_stack, esp_afe]
 
 network:
