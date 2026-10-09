@@ -12,6 +12,9 @@ waveshare-va.local.yaml
 __pycache__/
 *.pyc
 
+# Downloaded benchmark corpora, models and intermediate predictions
+.benchmark-cache/
+
 # OS junk
 .DS_Store
 Thumbs.db

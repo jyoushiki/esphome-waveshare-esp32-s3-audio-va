@@ -50,12 +50,23 @@ the installation.
 
 `Wake word sensitivity` changes the detection thresholds of all four models:
 
+- **Least sensitive** is the strictest preset. Use it in rooms where television
+  or background conversation causes false activations.
 - **Slightly sensitive** is the conservative default and should produce fewer
   false activations.
 - **Moderately sensitive** is a middle ground for a quiet room or a more distant
   speaker.
 - **Very sensitive** is most permissive and may respond at greater distance, at
   the cost of more false activations.
+- **Custom** is selected automatically when one of the disabled-by-default
+  per-model probability-cutoff entities is changed. It is intended for expert
+  per-device tuning rather than normal setup.
+
+The presets use different cutoffs for each model because the same numerical
+threshold does not give them equivalent behaviour. We selected these values
+using negative and positive corpus tests, a held-out speaker split and final
+tests on the board. The full method and machine-readable results are in
+[Wake-word sensitivity validation](WAKE_WORD_VALIDATION.md).
 
 ## Everyday Home Assistant controls
 
@@ -105,6 +116,7 @@ device's entity list only for troubleshooting or expert tuning:
 |---|---|---|
 | Echo cancellation | On | Disables only AEC; dual-mic speech enhancement and post-AFE AGC remain active |
 | AFE processing | On | Bypasses the complete processed path for an A/B comparison with converted raw microphone audio |
+| Per-model probability cutoff (four entities) | Model-specific | Sets an exact threshold and changes Wake word sensitivity to Custom |
 | Logger Level | Build default | Changes runtime logging verbosity |
 | Restart | — | Reboots the ESPHome device |
 

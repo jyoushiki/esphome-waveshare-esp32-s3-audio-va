@@ -881,27 +881,29 @@ script:
             uint8_t hey_mycroft_cutoff;
 
             if (x == "Least sensitive") {
-              // No false accepts were observed at these operating points in a
-              // public 10.7-hour DiPCo sweep of these four model revisions.
-              okay_nabu_cutoff = 247;   // 0.969
-              hey_jarvis_cutoff = 253;  // 0.992
-              alexa_cutoff = 242;       // 0.949
-              hey_mycroft_cutoff = 254; // 0.996
+              // Selected with a DiPCo negative sweep and a speaker-disjoint
+              // synthetic positive calibration/validation corpus.
+              // FA/h is VAD-gated over all 35 synchronized DiPCo far-field
+              // channels: 186.716 detector channel-hours in total.
+              okay_nabu_cutoff = 224;   // 0.878; 0.284 FA/h
+              hey_jarvis_cutoff = 252;  // 0.988; 0.145 FA/h
+              alexa_cutoff = 245;       // 0.961; 0.064 FA/h
+              hey_mycroft_cutoff = 254; // 0.996; 0.037 FA/h
             } else if (x == "Slightly sensitive") {
-              okay_nabu_cutoff = 217;   // 0.851
-              hey_jarvis_cutoff = 247;  // 0.969
-              alexa_cutoff = 230;       // 0.902
-              hey_mycroft_cutoff = 253; // 0.992
+              okay_nabu_cutoff = 217;   // 0.851; 0.353 FA/h
+              hey_jarvis_cutoff = 247;  // 0.969; 0.252 FA/h
+              alexa_cutoff = 230;       // 0.902; 0.327 FA/h
+              hey_mycroft_cutoff = 253; // 0.992; 0.086 FA/h
             } else if (x == "Moderately sensitive") {
-              okay_nabu_cutoff = 176;   // 0.690
-              hey_jarvis_cutoff = 235;  // 0.922
-              alexa_cutoff = 191;       // 0.749
-              hey_mycroft_cutoff = 242; // 0.949
+              okay_nabu_cutoff = 176;   // 0.690; 1.334 FA/h
+              hey_jarvis_cutoff = 235;  // 0.922; 0.375 FA/h
+              alexa_cutoff = 191;       // 0.749; 1.077 FA/h
+              hey_mycroft_cutoff = 242; // 0.949; 0.418 FA/h
             } else {
-              okay_nabu_cutoff = 143;   // 0.561
-              hey_jarvis_cutoff = 212;  // 0.831
-              alexa_cutoff = 128;       // 0.502
-              hey_mycroft_cutoff = 237; // 0.929
+              okay_nabu_cutoff = 143;   // 0.561; 2.426 FA/h
+              hey_jarvis_cutoff = 212;  // 0.831; 0.589 FA/h
+              alexa_cutoff = 128;       // 0.502; 2.865 FA/h
+              hey_mycroft_cutoff = 237; // 0.929; 0.536 FA/h
             }
 
             id(applying_wake_word_preset) = true;

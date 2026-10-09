@@ -96,6 +96,12 @@ playback reference and local AEC.
   `okay_nabu` enabled by default and `hey_jarvis`, `alexa` and `hey_mycroft`
   available as alternatives, plus the full Home Assistant Assist pipeline (STT / LLM / TTS),
   a wake beep and music ducking while it listens.
+- **Measured wake-word sensitivity**: each model has its own cutoffs, based on
+  a reproducible 5.3-hour DiPCo false-accept sweep and a speaker-disjoint
+  synthetic positive corpus. The resulting Least sensitive preset was also
+  tested on the board. Custom cutoffs remain available for rooms that need
+  further tuning. See
+  [Wake-word sensitivity validation](docs/WAKE_WORD_VALIDATION.md).
 - **Dual-mic local AEC**: both physical microphones and the board's analog
   playback-reference channel feed Espressif's AFE, allowing wake-word detection
   to continue while the device is speaking or playing audio.
@@ -177,6 +183,9 @@ versioned together with the implementation:
   rollback.
 - **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
   Home Assistant controls, diagnostic entities and LED-ring meanings.
+- **[Wake-word sensitivity validation](docs/WAKE_WORD_VALIDATION.md)**:
+  reproducible negative and positive benchmarks, cutoff-selection process and
+  current preset results.
 - **[Public beta testing](docs/BETA_TESTING.md)**: basic and extended test
   matrices plus a consistent results template.
 - **[Troubleshooting](docs/TROUBLESHOOTING.md)**: symptom-led checks for builds,
@@ -229,10 +238,17 @@ docs/
   BETA_TESTING.md          # public beta test matrix and report format
   TROUBLESHOOTING.md       # symptom-led diagnosis
   DIAGNOSTICS.md           # opt-in raw-TDM and AFE runtime instrumentation
+  WAKE_WORD_VALIDATION.md  # sensitivity methodology and selected cutoffs
   HARDWARE.md              # pinout, I2C map and audio architecture
+benchmarks/
+  dipco/                   # negative-corpus reports and complete cutoff data
+  positive/                # manifests, split results and candidate rationale
 scripts/
   validate.py              # offline YAML check (syntax, substitutions, duplicate ids)
   esplog.py                # stream device logs over the native API
+  benchmark_dipco.py       # reproduce the negative false-accept sweep
+  generate_positive_samples.py # generate the pinned synthetic corpus
+  benchmark_positive.py    # reproduce positive relative-recall evaluation
 ```
 
 ## Configuration
