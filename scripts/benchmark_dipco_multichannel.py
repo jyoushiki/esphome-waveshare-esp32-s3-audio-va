@@ -32,6 +32,7 @@ import numpy as np
 from numba import njit
 
 import benchmark_dipco as base
+from benchmark_events import clustered_count, combined_counts
 
 
 DEFAULT_ARCHIVE = base.DEFAULT_CACHE / "DipCo.tgz"
@@ -49,6 +50,8 @@ MEMBER_RE = re.compile(
 CACHE_SCHEMA = 1
 SLIDING_WINDOW = base.SLIDING_WINDOW
 MIN_FEATURE_SLICES_BEFORE_DETECTION = base.MIN_FEATURE_SLICES_BEFORE_DETECTION
+CLUSTER_TOLERANCE_MS = 1_000
+CLUSTER_TOLERANCE_PREDICTIONS = CLUSTER_TOLERANCE_MS // (base.FEATURE_STEP_MS * 3)
 
 
 def archive_digests(path: Path) -> tuple[str, str]:
@@ -260,19 +263,6 @@ def detection_indices(probabilities: np.ndarray, vad: np.ndarray, cutoff: int) -
     return events
 
 
-def clustered_count(indices: list[int], tolerance_predictions: int) -> int:
-    if not indices:
-        return 0
-    ordered = sorted(indices)
-    clusters = 1
-    cluster_end = ordered[0]
-    for index in ordered[1:]:
-        if index - cluster_end > tolerance_predictions:
-            clusters += 1
-        cluster_end = index
-    return clusters
-
-
 def evaluate_trace(path: Path) -> tuple[str, float, dict[str, dict[str, np.ndarray]], dict[str, dict[str, list[int]]]]:
     key = path.stem
     modes: dict[str, dict[str, np.ndarray]] = {}
@@ -319,6 +309,8 @@ def evaluate(
     session_events: dict[str, dict[str, dict[str, list[int]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(list))
     )
+    combined_identity_counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    combined_raw_counts: dict[str, int] = defaultdict(int)
     detector_seconds = 0.0
 
     paths = [
@@ -350,6 +342,15 @@ def evaluate(
                     recording_results[key]["presets"][name][preset] = count
                     identity_counts[identity][name][preset] += count
                     session_events[session][name][preset].extend(events)
+            recording_results[key]["combined_presets"] = {}
+            for preset in base.PRESETS:
+                counts = combined_counts(
+                    (preset_events[name][preset] for name in model_names),
+                    CLUSTER_TOLERANCE_PREDICTIONS,
+                )
+                combined_raw_counts[preset] += counts["raw_model_detections"]
+                combined_identity_counts[identity][preset] += counts["events"]
+                recording_results[key]["combined_presets"][preset] = counts
             if index % 25 == 0 or index == len(paths):
                 print(f"evaluated {index}/{len(paths)} traces")
 
@@ -365,7 +366,11 @@ def evaluate(
             "recordings": len(recording_results),
             "unique_conversation_hours": unique_hours,
             "detector_channel_hours": detector_hours,
-            "synchronized_cluster_tolerance_ms": 1_000,
+            "synchronized_cluster_tolerance_ms": CLUSTER_TOLERANCE_MS,
+            "combined_cluster_tolerance_ms": CLUSTER_TOLERANCE_MS,
+            "effective_cluster_tolerance_ms": CLUSTER_TOLERANCE_PREDICTIONS * base.FEATURE_STEP_MS * 3,
+            "clustering_rule": "Successive detections at most the tolerance apart belong to one cluster; clustering never crosses sessions or recordings for channel counts.",
+            "combined_models": model_names,
         },
         "corpus": {
             "record": "https://zenodo.org/records/8122551",
@@ -379,7 +384,9 @@ def evaluate(
         },
         "cutoffs": {},
         "presets": {},
+        "combined_presets": {},
         "channel_identities": identity_counts,
+        "combined_channel_identities": combined_identity_counts,
         "recordings": recording_results,
     }
 
@@ -396,7 +403,7 @@ def evaluate(
                 for cutoff, events in enumerate(values)
             ]
 
-    tolerance = round(1_000 / (base.FEATURE_STEP_MS * 3))
+    tolerance = CLUSTER_TOLERANCE_PREDICTIONS
     for preset, preset_models in base.PRESETS.items():
         result["presets"][preset] = {}
         for name, cutoff in preset_models.items():
@@ -421,6 +428,28 @@ def evaluate(
                 "synchronized_acoustic_events_per_unique_hour": clustered / unique_hours,
                 "synchronized_poisson_95": clustered_interval,
             }
+        events = sum(combined_identity_counts[identity][preset] for identity in EXPECTED_CHANNELS)
+        per_identity = [combined_identity_counts[identity][preset] / unique_hours for identity in sorted(EXPECTED_CHANNELS)]
+        synchronized = sum(
+            clustered_count(
+                [event for name in model_names for event in session_events[session][name][preset]],
+                tolerance,
+            )
+            for session in EXPECTED_SESSIONS
+        )
+        result["combined_presets"][preset] = {
+            "raw_model_detections": combined_raw_counts[preset],
+            "events": events,
+            "false_accepts_per_detector_hour": events / detector_hours,
+            "per_channel_fah": {
+                "minimum": float(np.min(per_identity)),
+                "median": float(np.median(per_identity)),
+                "p90": float(np.percentile(per_identity, 90)),
+                "maximum": float(np.max(per_identity)),
+            },
+            "synchronized_acoustic_events": synchronized,
+            "synchronized_acoustic_events_per_unique_hour": synchronized / unique_hours,
+        }
 
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -436,6 +465,8 @@ def write_markdown(result: dict, path: Path) -> None:
         f"Unique conversation duration: {method['unique_conversation_hours']:.3f} hours.",
         f"Detector exposure across 35 synchronized channels: {method['detector_channel_hours']:.3f} channel-hours.",
         "",
+        "## Individual models",
+        "",
         "| Preset | Model | Cutoff | Aggregate FA/channel-hour | Channel median | Channel p90 | Channel maximum | Synchronized events | Synchronized FA/h |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
@@ -449,6 +480,29 @@ def write_markdown(result: dict, path: Path) -> None:
                 f"| {distribution['maximum']:.3f} | {values['synchronized_acoustic_events']} "
                 f"| {values['synchronized_acoustic_events_per_unique_hour']:.3f} |"
             )
+    lines.extend([
+        "",
+        "## All four wake-word models enabled",
+        "",
+        "VAD-gated detections from all four models are merged within each recording before calculating FA/channel-hour. "
+        "Successive detections within one second form one cluster (990 ms at the 30 ms prediction cadence); "
+        "a chain can span longer than one second. Synchronized counts also merge across microphones within each session.",
+        "",
+        "These are clustered offline detections, not measured Assist sessions. Nearby independent triggers can be merged, "
+        "and detections from the same utterance more than one second apart can remain separate.",
+        "",
+        "| Preset | Raw model detections | Combined events | Combined FA/channel-hour | Channel median | Channel p90 | Channel maximum | Synchronized events | Synchronized FA/h |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ])
+    for preset, values in result["combined_presets"].items():
+        distribution = values["per_channel_fah"]
+        lines.append(
+            f"| {preset} | {values['raw_model_detections']} | {values['events']} "
+            f"| {values['false_accepts_per_detector_hour']:.3f} "
+            f"| {distribution['median']:.3f} | {distribution['p90']:.3f} "
+            f"| {distribution['maximum']:.3f} | {values['synchronized_acoustic_events']} "
+            f"| {values['synchronized_acoustic_events_per_unique_hour']:.3f} |"
+        )
     if result["smoke_test"]:
         lines.extend(("", "> **Smoke test only:** truncated audio; do not use these rates to select cutoffs."))
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

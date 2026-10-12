@@ -51,6 +51,32 @@ interval to the aggregate.
 | Moderately sensitive | 1.334 | 0.375 | 1.077 | 0.418 |
 | Very sensitive | 2.426 | 0.589 | 2.865 | 0.536 |
 
+### All four wake words enabled
+
+The combined result merges accepted detections from all four models within
+each recording, counting nearby detections once. It uses the same audio
+exposure as the per-model table, not four times that duration.
+
+| Preset | Combined false wakes | Combined FA/channel-hour |
+|---|---:|---:|
+| Least sensitive | 99 | 0.530 |
+| Slightly sensitive | 190 | 1.018 |
+| Moderately sensitive | 598 | 3.203 |
+| Very sensitive | 1198 | 6.416 |
+
+Successive detections within one second belong to one cluster (990 ms at the
+30 ms prediction cadence). A chain can span longer than one second. No
+detections overlapped within a recording under this rule at these presets, so
+the combined counts equal the sums of the individual model counts for this
+dataset. This need not hold for other audio or cutoffs.
+
+The [full report](../benchmarks/dipco/all_channels.md) also gives channel
+distributions and counts merged across synchronized microphones. Timestamp
+clustering can merge nearby independent triggers or leave separate detections
+from one utterance with a longer gap. These are offline detector results, not
+measured Assist sessions or expected household rates. Only OK Nabu is enabled
+by default; this table describes enabling all four wake words.
+
 ## Relationship to the Voice PE values
 
 The original Nabu, Jarvis and Mycroft cutoffs came from the

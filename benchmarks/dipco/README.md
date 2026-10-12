@@ -61,6 +61,13 @@ accepts `--workers`; only a bounded set of temporary WAVs is extracted at once.
 Use `--max-seconds 60` for a short pipeline smoke test; results from a truncated
 run must not be used to select production cutoffs.
 
+To regenerate the reports from complete cached probability traces without
+downloading audio or repeating inference:
+
+```sh
+uv run scripts/benchmark_dipco_multichannel.py evaluate
+```
+
 The smaller historical run can still be reproduced separately:
 
 ```sh
@@ -81,13 +88,31 @@ start/rearm interval and the probability reset after an accepted detection. A
 detection blocked by VAD does not reset the wake-word ring, matching the
 firmware.
 
-The multichannel report contains three views:
+The multichannel report contains results for individual models and for all four
+wake-word models enabled together:
 
 - aggregate false accepts per detector channel-hour;
 - the minimum, median, 90th percentile and maximum FA/h across the 35 physical
   unit/channel identities;
 - detections clustered by session and timestamp, so one utterance activating
   several synchronized microphones is counted as one acoustic event.
+
+For the combined result, detections from all four models are merged within
+each recording before calculating FA/channel-hour and the channel distribution.
+The exposure denominator stays at 186.716 channel-hours; enabling four models
+does not multiply the audio duration. The report also keeps the raw model
+detection count, so the effect of merging is visible. Its combined synchronized
+count merges across both models and microphones within each session and uses
+5.335 unique conversation hours.
+
+Both synchronized and combined counts use a one-second gap between successive
+detections (990 ms at the 30 ms prediction cadence). A chain of nearby detections
+can therefore span longer than one second. This is a timestamp-based grouping
+rule, not proof that detections came from the same utterance: nearby independent
+triggers can merge, while triggers from one utterance separated by a longer gap
+can remain separate. Combined counts replay the models independently and merge
+their accepted detections; they do not simulate Assist sessions or pauses caused
+by voice interactions. The firmware enables only OK Nabu by default.
 
 The first metric describes total detector exposure. The 35 channels are
 synchronized views, so they do not provide 187 independent hours of

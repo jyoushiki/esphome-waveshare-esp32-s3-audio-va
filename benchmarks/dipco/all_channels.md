@@ -3,6 +3,8 @@
 Unique conversation duration: 5.335 hours.
 Detector exposure across 35 synchronized channels: 186.716 channel-hours.
 
+## Individual models
+
 | Preset | Model | Cutoff | Aggregate FA/channel-hour | Channel median | Channel p90 | Channel maximum | Synchronized events | Synchronized FA/h |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | Least sensitive | `okay_nabu` | 224/255 | 0.284 | 0.187 | 0.562 | 0.562 | 10 | 1.874 |
@@ -21,3 +23,16 @@ Detector exposure across 35 synchronized channels: 186.716 channel-hours.
 | Very sensitive | `hey_jarvis` | 212/255 | 0.589 | 0.562 | 0.750 | 0.937 | 13 | 2.437 |
 | Very sensitive | `alexa` | 128/255 | 2.865 | 2.999 | 3.561 | 3.749 | 96 | 17.993 |
 | Very sensitive | `hey_mycroft` | 237/255 | 0.536 | 0.562 | 0.937 | 1.312 | 19 | 3.561 |
+
+## All four wake-word models enabled
+
+VAD-gated detections from all four models are merged within each recording before calculating FA/channel-hour. Successive detections within one second form one cluster (990 ms at the 30 ms prediction cadence); a chain can span longer than one second. Synchronized counts also merge across microphones within each session.
+
+These are clustered offline detections, not measured Assist sessions. Nearby independent triggers can be merged, and detections from the same utterance more than one second apart can remain separate.
+
+| Preset | Raw model detections | Combined events | Combined FA/channel-hour | Channel median | Channel p90 | Channel maximum | Synchronized events | Synchronized FA/h |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Least sensitive | 99 | 99 | 0.530 | 0.375 | 0.937 | 0.937 | 22 | 4.123 |
+| Slightly sensitive | 190 | 190 | 1.018 | 0.937 | 1.499 | 1.687 | 40 | 7.497 |
+| Moderately sensitive | 598 | 598 | 3.203 | 3.186 | 4.236 | 4.686 | 116 | 21.742 |
+| Very sensitive | 1198 | 1198 | 6.416 | 6.373 | 7.422 | 8.997 | 215 | 40.298 |
