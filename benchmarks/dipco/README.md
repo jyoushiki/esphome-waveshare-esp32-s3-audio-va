@@ -3,8 +3,8 @@
 This benchmark measures false wake-word activations on the
 [Dinner Party Corpus (DiPCo)](https://www.amazon.science/publications/dipco-dinner-party-corpus).
 It evaluates the exact quantized models pinned by `waveshare-va.yaml` and sweeps
-all configurable ESPHome probability cutoffs (`0..254`). Cutoff zero is a
-firmware edge case: because the initial rearm counter advances only while the
+the quantized probability cutoffs (`0..254`). The firmware exposes only
+`1..254` for custom tuning. Cutoff zero is a detector edge case: because the initial rearm counter advances only while the
 latest probability is below the cutoff, zero never arms detection. It is kept
 in the machine-readable output for completeness, but preset comparisons start
 above zero.

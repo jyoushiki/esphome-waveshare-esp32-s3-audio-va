@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible firmware, installation or update problem
+description: Report a firmware, installation or update problem on a stable release or pre-release
 title: "[Bug]: "
 labels:
   - bug
@@ -13,8 +13,8 @@ body:
     id: version
     attributes:
       label: Installed firmware version
-      description: Use the release tag or the project version reported by the device.
-      placeholder: v2.0.0-beta.5
+      description: Enter the installed version reported by the device. Stable releases and pre-releases are both accepted.
+      placeholder: v2.0.0
     validations:
       required: true
 

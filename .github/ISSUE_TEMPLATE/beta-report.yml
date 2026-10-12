@@ -7,8 +7,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Pre-release version
-      placeholder: v2.0.0-beta.5
+      label: Installed firmware version
+      description: Enter the version reported by the device you tested.
+      placeholder: Enter the installed firmware version
     validations:
       required: true
 

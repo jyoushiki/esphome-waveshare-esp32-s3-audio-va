@@ -48,5 +48,7 @@ voice together.
 
 The generated voices allow nearby cutoffs to be compared under identical
 conditions, but they cover only a limited range of accents, microphones, rooms
-and AFE artefacts. Selected presets still need practical board testing. Users
-who need a different trade-off can set a custom value.
+and AFE artefacts. New cutoff choices also need practical board testing. The
+[hardware check](../../docs/WAKE_WORD_VALIDATION.md#hardware-check) records that
+step for the released Least sensitive preset. Users who need a different
+tradeoff can set a custom value.

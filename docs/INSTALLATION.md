@@ -446,7 +446,7 @@ Before declaring an installation healthy, verify:
 - Rebooting preserves microphone mute and wake-word selections.
 
 For a precompiled installation, also verify that the selected update entity
-reports the installed version as up to date. For a beta update test, confirm
+reports the installed version as up to date. After a managed update, confirm
 that the device returns online with its Wi-Fi and saved settings intact.
 
 ## Rolling back or recovering
@@ -459,11 +459,12 @@ and saved preferences.
 
 For a source build:
 
-1. Replace `ref:` with the previous known-good commit SHA or release tag.
+1. Restore the complete YAML from the previous known-good release or commit,
+   carrying over your local names, credentials and other custom settings.
 2. Run `esphome clean waveshare-va.yaml`.
 3. Build and install again over OTA or USB.
 
-## Reporting a beta issue
+## Reporting an issue
 
 Include:
 

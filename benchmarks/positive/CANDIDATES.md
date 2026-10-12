@@ -35,7 +35,7 @@ Hey Mycroft already records no DiPCo false accepts at its 253 baseline. The
 254 candidate is retained because the calibration loss is small in clean and
 reverberant conditions, it remains useful as a distinct stricter preset, and
 254 is the highest functional cutoff. A cutoff of zero cannot re-arm under the
-microWakeWord comparison semantics and is not a usable maximum.
+microWakeWord comparison semantics and is not a usable cutoff.
 
 These choices were fixed before opening the validation split. A later candidate
 change requires a new independent holdout or must be labelled exploratory.

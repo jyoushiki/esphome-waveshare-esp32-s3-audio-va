@@ -7,7 +7,7 @@ This project references and uses third-party software, models, and media assets.
 This project references sound assets from the Home Assistant Voice Preview Edition repository at build time.
 
 Source:  
-https://github.com/esphome/home-assistant-voice-pe/tree/dev/sounds
+https://github.com/esphome/home-assistant-voice-pe/tree/0579e7b9d8504264719c593474c85447253c9dc1/sounds
 
 The sound assets are:
 
@@ -19,7 +19,7 @@ License:
 https://creativecommons.org/licenses/by/4.0/
 
 Upstream license notice:  
-https://github.com/esphome/home-assistant-voice-pe/blob/dev/sounds/LICENSE.md
+https://github.com/esphome/home-assistant-voice-pe/blob/0579e7b9d8504264719c593474c85447253c9dc1/sounds/LICENSE.md
 
 The referenced assets currently include sounds such as the wake-word indication, timer-finished sound, and error notification sounds.
 
@@ -46,7 +46,7 @@ Individual model manifests may also contain author and model-specific attributio
 This project uses `esphome-audio-stack` as an ESPHome external component.
 
 Source:  
-https://github.com/jyoushiki/esphome-audio-stack
+https://github.com/n-IA-hane/esphome-audio-stack
 
 The component is distributed separately under the MIT License.
 
@@ -55,7 +55,7 @@ Upstream copyright notice:
 Copyright (c) 2025 n-IA-hane (meconiotech@gmail.com)
 
 License:  
-https://github.com/jyoushiki/esphome-audio-stack/blob/main/LICENSE
+https://github.com/n-IA-hane/esphome-audio-stack/blob/v2026.10.2/LICENSE
 
 The component source is not vendored into this repository. ESPHome retrieves it as an external component when building the firmware.
 

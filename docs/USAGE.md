@@ -39,10 +39,10 @@ Four on-device models are installed:
 - Alexa
 - Hey Mycroft
 
-ESPHome enables only the first model, **OK Nabu**, on the first boot. Home
-Assistant exposes a switch for each model so that the alternatives can be
-enabled or disabled without rebuilding. Their enabled states are stored in
-flash and restored after reboot.
+All four models are available. **OK Nabu** is enabled by default on a fresh
+installation. Home Assistant exposes a switch for each model so that the
+alternatives can be enabled or disabled without rebuilding. Their enabled
+states are stored in flash and restored after reboot.
 
 Enabling more models makes more phrases available, but also gives the detector
 more opportunities for a false activation. Start with one model while checking
@@ -63,9 +63,11 @@ the installation.
   per-device tuning rather than normal setup.
 
 The presets use different cutoffs for each model because the same numerical
-threshold does not give them equivalent behaviour. We selected these values
-using negative and positive corpus tests, a held-out speaker split and final
-tests on the board. The full method and machine-readable results are in
+threshold does not give them equivalent behaviour. The Least sensitive values
+were selected using negative and positive corpus tests, a held-out speaker
+split and a hardware check. The other presets retain their existing cutoffs;
+the benchmark measures their false-accept rates and recall for comparison.
+The full method and machine-readable results are in
 [Wake-word sensitivity validation](WAKE_WORD_VALIDATION.md).
 
 ## Everyday Home Assistant controls

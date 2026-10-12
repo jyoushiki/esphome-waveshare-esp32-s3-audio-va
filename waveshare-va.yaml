@@ -87,7 +87,7 @@ esphome:
   # on multiple boards. Dashboard full-config import replaces this with the
   # adopted device name and disables the suffix in the materialized YAML.
   name_add_mac_suffix: true
-  # The upstream audio-stack development line uses ESPHome's 2026.9 audio and
+  # The pinned Audio Stack release requires ESPHome's 2026.9 audio and
   # PSRAM-DMA foundations.
   min_version: 2026.9.0
   on_boot:
