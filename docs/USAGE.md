@@ -129,6 +129,11 @@ and are not exposed for normal control. The amplifier follows audio ownership
 automatically; manually controlling it would make the hardware state disagree
 with the playback pipeline.
 
+Custom probability cutoffs are limited to `1/255` through `254/255`
+(approximately 0.00392–0.99608). Zero prevents the detector from rearming;
+`255/255` prevents detection. A saved zero from earlier firmware is corrected
+to `1/255` when Custom settings are applied.
+
 ## LED ring states
 
 | Ring state | Meaning |

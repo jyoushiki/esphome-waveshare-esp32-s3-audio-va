@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Limit custom wake-word probability cutoffs to `1/255` through `254/255`,
+  preventing a zero threshold from blocking detector rearming. Runtime clamps
+  also correct saved zero values when Custom settings are restored.
+
 ## [2.0.0-beta.5] - 2026-10-09
 
 Fifth public beta of the 48 kHz dual-microphone firmware. This release adds a
