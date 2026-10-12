@@ -1,5 +1,91 @@
 # Changelog
 
+## [2.0.0] - 2026-10-12
+
+First stable release of the 48 kHz firmware for the
+Waveshare ESP32-S3-AUDIO-Board. This entry summarizes the changes since v1.1.0
+across the v2 beta series. The individual beta entries follow below.
+
+The firmware runs as a Home Assistant Assist satellite with on-device wake
+words and dual-microphone echo cancellation. It also supports music,
+announcements and voice timers, with physical controls and a configurable
+seven-LED status ring. Home Assistant handles the Assist pipeline, including
+speech recognition and spoken replies.
+
+### Added
+
+- Precompiled browser installation, USB Wi-Fi provisioning and managed Stable
+  and Beta OTA update channels. The universal image uses MAC-suffixed names
+  for multiple devices.
+- The complete editable `waveshare-va.yaml` as a release attachment and through
+  ESPHome Device Builder's Take control flow. Users can build from source
+  to customize the configuration or add diagnostics.
+- Hey Mycroft as a fourth wake-word option alongside OK Nabu, Hey Jarvis and
+  Alexa. All four models are available; OK Nabu is enabled by default on a
+  fresh installation.
+- A Least sensitive wake-word preset and optional per-model custom cutoffs.
+  Each model has its own preset thresholds. Reproducible negative and synthetic
+  positive benchmarks document the tradeoff between false activations and recall.
+  Custom cutoffs are limited to `1/255` through `254/255`.
+- A microphone privacy control on the Boot button. Mute survives reboot,
+  supplies silence to every microphone consumer and shows a dim red reminder.
+- A blue volume-level display and a violet countdown showing the closest
+  active voice timer on the seven-LED ring.
+- Home Assistant `start_ringing` and `stop_ringing` actions so scheduled
+  automations can use the local timer sound, ducking and ring feedback.
+- Separate diagnostic controls for echo cancellation and full AFE bypass,
+  plus opt-in raw TDM and AFE runtime diagnostic packages.
+- Versioned installation, usage, troubleshooting, hardware and wake-word
+  validation guides, issue forms and automated release-packaging checks.
+
+### Changed
+
+- Physical bus and speaker playback increase from 16 kHz to 48 kHz, using
+  four 16-bit TDM slots. Both microphones and the synchronized analog playback
+  reference are converted to 16 kHz for Espressif's speech front end,
+  Micro Wake Word and Home Assistant.
+- Sparse RX/TX DMA transfers only the required slots while preserving the
+  physical four-slot frame. Non-DMA audio-stack buffers, AFE feed/fetch buffers
+  and media-decoder task stacks use PSRAM. Audio-stack, mixer, resampler and
+  wake-word task stacks use their default internal-RAM placement.
+- The dual-microphone speech path uses local AEC and Speech Enhancement/BSS,
+  followed by post-AFE AGC. The microphones and playback reference use
+  the same hardware gain. The live microphone-gain control applies after
+  processing.
+- Key 2 now stops ringing, an active Assist session or an announcement before
+  falling back to music play/pause or manual Assist start. Key 1 and Key 3
+  change volume in 5% steps.
+- Capture timing follows actual wake-chime playback, allowing capture to start
+  during the chime's quiet tail.
+- Pin Audio Stack v2026.10.2 and ESP-SR 2.5.5. Sound assets and wake-word/VAD
+  models also use pinned revisions. The release build uses ESPHome 2026.9.0.
+
+### Fixed
+
+- Restore microphone privacy mute reliably across reboot.
+- Keep timer entities synchronized when timers finish, change or are cancelled,
+  including promotion of the next active timer.
+- Avoid rebooting solely because Home Assistant's API is unavailable.
+
+### Compatibility and upgrades
+
+- Source builds require ESPHome 2026.9.0 or newer and the ESP-IDF framework.
+  Precompiled installations need no local ESPHome build host.
+- The old `base/core.yaml` package layout is replaced by the complete
+  `waveshare-va.yaml`. Users with v1.x source configurations need to migrate
+  to the new file; changing the package tag alone will not work.
+- Remove the local daily-alarm scheduler, timezone configuration and related
+  actions. Use Home Assistant scheduling with `start_ringing` and
+  `stop_ringing` instead. Voice timers remain supported.
+- Remove the manual amplifier switch, diagnostic microphone-stop switch and
+  always-on TDM level sensors from normal use. The firmware controls amplifier
+  power automatically. Diagnostic packages provide detailed audio instrumentation.
+- Precompiled beta installations can receive v2.0.0 through their existing Beta
+  firmware entity. This release updates both the Stable and Beta manifests;
+  use only one update channel at a time.
+
+---
+
 ## [2.0.0-beta.5] - 2026-10-09
 
 Fifth public beta of the 48 kHz dual-microphone firmware. This release adds a

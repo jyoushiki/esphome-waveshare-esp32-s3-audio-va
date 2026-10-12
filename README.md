@@ -1,293 +1,180 @@
 ![ESPHome and Home Assistant voice assistant on the Waveshare ESP32-S3-AUDIO-Board](docs/hero.jpg)
 
-# ESPHome Voice Assistant for the Waveshare ESP32-S3-AUDIO-Board
+# ESPHome voice assistant for the Waveshare ESP32-S3-AUDIO-Board
 
-A hardware-specific **Home Assistant voice satellite** running on the
-[Waveshare ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm),
-the little AI smart-speaker devkit with a dual-mic array, an ES8311 codec, three
-buttons and a 7-LED RGB ring. It combines ESPHome with an external audio stack
-to use the board as one coordinated full-duplex audio device: 48 kHz playback,
-both microphones, the analog playback reference, local AEC and Espressif's
-speech front end.
+ESPHome firmware that runs the
+[Waveshare ESP32-S3-AUDIO-Board](https://www.waveshare.com/esp32-s3-audio-board.htm)
+as a Home Assistant voice satellite. It uses both microphones and the board's
+playback reference for local echo cancellation, with 48 kHz speaker output.
+The onboard buttons control volume, Assist and microphone mute, and the
+seven-LED ring shows the device's state.
+
+You need Home Assistant with an Assist pipeline. Wake-word detection runs on
+the board; Home Assistant handles speech recognition, intent processing and
+spoken replies through the providers configured in your pipeline.
 
 > [!NOTE]
 > This project started as a fork of
-> [Michał Zaniewicz's firmware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va),
-> but now follows an independent architecture and release path. Michał's work
-> remains the foundation and is credited under the original license; this
-> repository's documentation describes this firmware only.
+> [Michał Zaniewicz's firmware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va).
+> It now uses a different audio architecture and has its own release path.
+> Follow this repository's guides when installing or configuring this firmware.
+> See the [project comparison](docs/PROJECT_COMPARISON.md) for the differences.
 
-> [!IMPORTANT]
-> **Release status:** `v2.0.0-beta.5` is the current public beta of the 48 kHz TDM
-> architecture described below. It adds a measured Least sensitive wake-word
-> preset, optional per-model cutoff controls and the supporting reproducible
-> benchmark results. It also moves to the stable Audio Stack 2026.10.2 release.
-> The firmware is distributed as a GitHub pre-release with precompiled
-> installation and managed beta updates. `v1.1.0` remains the last stable tag
-> and uses the earlier 16 kHz layout. Active development continues on `dev`;
-> there is no separate beta branch.
+The current stable release is `v2.0.0`, the first stable release of the
+48 kHz firmware. See the [changelog](CHANGELOG.md) for features, upgrade
+guidance and release history.
 
-Found a problem or completed a beta test? Use the repository's
-**[issue forms](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/issues/new/choose)**
-for a bug report, beta result or feature proposal.
+## Installation
+
+Use the [browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)
+for a precompiled installation:
+
+1. Connect the board over USB with a data cable and open the installer in
+   Chrome or Edge.
+2. Check the displayed firmware version and select **Install**.
+3. Reconnect when prompted and enter your Wi-Fi credentials.
+4. Add the discovered ESPHome device to Home Assistant and assign an Assist
+   pipeline.
+5. Say **OK Nabu**.
+
+The installer uses the same factory image attached to the GitHub release.
+Precompiled installations support managed Stable and Beta updates without
+ESPHome Device Builder or a local build host. Keep only one update channel
+enabled in Home Assistant.
+
+The [installation guide](docs/INSTALLATION.md) covers first-flash setup,
+Wi-Fi provisioning, channel selection and recovery. It also explains how to
+build from the complete `waveshare-va.yaml` if you want to modify the firmware
+or add diagnostic packages. Source builds require ESPHome 2026.9.0 or newer,
+ESP-IDF and a host with enough memory for the audio stack and wake-word models.
+
+## Features
+
+- Four on-device wake words: OK Nabu, Hey Jarvis, Alexa and Hey Mycroft. All are
+  available, with OK Nabu enabled by default. Enable models and adjust
+  sensitivity from Home Assistant without reflashing.
+- Local echo cancellation through Espressif's speech front end, using both
+  microphones and the synchronized analog playback reference. Wake-word
+  detection continues while music or spoken replies play.
+- Music Assistant playback and announcements mixed over music. Assist and
+  announcements duck music, which returns to its previous level afterwards.
+- Voice timers, with a seven-LED countdown for the nearest active timer and a
+  Next timer sensor in Home Assistant. Stop ringing with a wake word or Key 2.
+  Home Assistant automations can start and stop the same local ringing behavior.
+- Ring feedback for startup, connectivity, Assist phases, timers, mute and
+  volume changes. Choose solid light or one of 14 animations for listening,
+  thinking and replying, and adjust brightness from Home Assistant.
+- A switchable ready chime after connecting to Home Assistant and a wake chime
+  before Assist capture. The amplifier stays off until playback needs it.
+
+Each wake-word model has its own sensitivity thresholds. Least sensitive is
+available for rooms where television or conversation causes unwanted
+activations; custom cutoffs allow further tuning. The
+[wake-word validation guide](docs/WAKE_WORD_VALIDATION.md) records the
+reproducible 5.3-hour DiPCo false-accept sweep, speaker-disjoint synthetic
+positive corpus and hardware check used to select that preset. It also explains
+the recall tradeoff and the limits of those measurements.
+
+## Controls and settings
+
+| Button | Action |
+|---|---|
+| Key 1 | Raise volume by 5% |
+| Key 2 | Stop ringing, Assist or an announcement; otherwise control music or start Assist |
+| Key 3 | Lower volume by 5% |
+| Boot | Toggle microphone privacy mute |
+
+Microphone mute survives reboot and supplies silence to every microphone
+consumer, including wake-word detection. A dim red ring indicates mute. Volume
+changes briefly show a blue level bar.
+
+Home Assistant also exposes post-AFE microphone gain, LED brightness, phase
+animations, wake-word sensitivity, and wake and boot sound switches. The
+[usage guide](docs/USAGE.md) lists the controls, saved settings and ring states.
+
+For source builds, these substitutions set the device name and playback
+preferences. The precompiled firmware uses the defaults below.
+
+| Substitution | Default | What it does |
+|---|---|---|
+| `name` / `friendly_name` | `waveshare-voice` / `Waveshare Voice` | Device name. Changing `name` may create new entity identifiers in Home Assistant. |
+| `volume_min` / `volume_max` | `0.4` / `0.8` | Media player clamps, because the onboard amp distorts near the top. |
+| `hidden_ssid` | `false` | `true` enables `fast_connect` for a hidden SSID. |
+| `boot_sound_file` | repo `startup.mp3` | Ready chime after connecting to Home Assistant. Any URL or local MP3/FLAC/WAV. |
+| `wake_chime_capture_delay` | `600ms` | Delay before Assist starts capturing after the wake chime begins; tune for custom sounds. |
+
+Pin assignments are also substitutions in `waveshare-va.yaml`. The audio
+format is configured in the same file; see the hardware guide before changing
+either when porting to another board.
+
+## Audio architecture
+
+The ES7210 microphone ADC and ES8311 speaker DAC share their clock pins.
+The external `esp_audio_stack` component owns input and output together on a
+48 kHz bus with four 16-bit TDM slots. RX transfers the two microphone slots
+and analog playback reference; TX transfers the speaker slot. Transferring
+only the required slots reduces DMA memory without changing the physical frame.
+
+The microphone and reference inputs are converted together to 16 kHz for
+Espressif's AFE. It applies echo cancellation and dual-microphone Speech
+Enhancement/BSS, followed by post-AFE AGC, then sends mono audio to
+`micro_wake_word` and Home Assistant. ESP-SR omits its separate noise-suppression
+stage in this dual-microphone graph. Music and TTS playback remain at 48 kHz.
 
 ```
 You  ──▶  Waveshare ESP32-S3  ──▶  Home Assistant Assist
          (wake word + audio)      (STT / LLM / TTS)
 ```
 
-## Choosing between this project and Michał's
+This firmware pins Audio Stack v2026.10.2 and ESP-SR 2.5.5. Rate conversion and
+speech processing add build time and memory requirements. Audio buffers and
+media-decoder task stacks use PSRAM; DMA and latency-sensitive task stacks use
+internal RAM. See the
+[hardware reference](docs/HARDWARE.md#shared-full-duplex-bus) for the slot map,
+automatic DMA geometry, measured memory use and pin assignments.
 
-Both projects target the same board and share the same origin, but differ in
-audio processing and dependencies. Neither is intended as a drop-in
-configuration source for the other.
+## Documentation and support
 
-| | This project | Michał's original project |
-|---|---|---|
-| Audio ownership | One external full-duplex audio stack owns RX and TX | Stock ESPHome `i2s_audio` components on two logical buses |
-| Physical playback | 48 kHz, four 16-bit TDM slots | Simpler 16-bit shared-clock layout, effectively voice-grade playback |
-| Microphone path | Both physical microphones plus synchronized analog speaker reference | Stock microphone stream without the reference channel in the Assist path |
-| Processing | Espressif AFE with dual-mic BSS/SE, AEC and post-AFE AGC | Standard ESPHome voice pipeline; no local AEC |
-| Dependencies | External `esphome-audio-stack`, pinned to a hardware-tested upstream release | Pure stock ESPHome; no external audio component |
-| Main advantage | Better use of this board's audio hardware, echo handling and 48 kHz output | Simpler build, fewer moving parts and easier alignment with stock ESPHome |
-| Main tradeoff | More code, RAM pressure, build time and hardware-specific complexity | Lower playback bandwidth and no use of the board's analog reference for AEC |
+- [Installation and updates](docs/INSTALLATION.md): browser installation, source
+  builds, network setup and recovery.
+- [Using the voice assistant](docs/USAGE.md): buttons, wake words, Home Assistant
+  entities and ring states.
+- [Troubleshooting](docs/TROUBLESHOOTING.md): build, connection and audio problems.
+- [Diagnostic tools](docs/DIAGNOSTICS.md): optional raw TDM and AFE runtime packages.
+- [Wake-word sensitivity validation](docs/WAKE_WORD_VALIDATION.md): benchmarks,
+  preset results and limitations.
+- [Hardware reference](docs/HARDWARE.md): codecs, pinout and audio processing.
+- [Public beta testing](docs/BETA_TESTING.md): test checklist and report format.
+- [Changelog](CHANGELOG.md): release history.
+- [`waveshare-va.yaml`](waveshare-va.yaml): complete editable firmware configuration.
 
-Choose Michał's implementation if avoiding external components is the priority.
-Choose this one if dual-mic processing, local echo cancellation and 48 kHz
-playback justify the additional dependency and complexity. Bugs and setup
-questions must be reported against the repository whose firmware is installed;
-the two audio architectures require different diagnosis.
+Use the [issue forms](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/issues/new/choose)
+to report a bug, submit a beta result or propose a feature. Include the installed
+version and whether you used precompiled firmware or a source build.
 
-## Choosing between this project and `esphome-intercom`
+## Related projects and credits
 
-[`esphome-intercom`](https://github.com/n-IA-hane/esphome-intercom) also provides
-a maintained full-experience profile for this board. The projects share the
-same `esphome-audio-stack` foundation and many audio principles, but serve
-different purposes: this firmware is a focused Home Assistant voice satellite,
-whereas `esphome-intercom` is a broader voice and SIP/VoIP platform.
+[esphome-intercom](https://github.com/n-IA-hane/esphome-intercom) uses the same
+audio-stack foundation and also supports SIP/VoIP calling. This firmware
+focuses on Assist and media playback. See the
+[project comparison](docs/PROJECT_COMPARISON.md) for differences in audio
+processing, controls and configuration.
 
-| | This project | `esphome-intercom` full experience |
-|---|---|---|
-| Primary purpose | Dedicated Assist satellite and media player | Voice assistant plus a complete SIP/VoIP endpoint |
-| Physical buttons | Volume up, contextual Assist/media action and volume down | Calling, contact selection, answering and declining |
-| Wake words | Four bundled alternatives with selectable sensitivity | A simpler default wake-word setup intended for its shared runtime |
-| LED experience | Selectable per-phase effects and a physical volume-level display | Call, assistant and media state coordinated by a generic runtime controller |
-| Voice tuning | Board-specific speech-recognition AFE, post-AFE AGC and calibrated mic/reference gain | Full-duplex profile tuned for simultaneous Voice Assistant, media and calls |
-| Extra infrastructure | No PBX, SIP account or custom VoIP integration required | Optional HA phone system, softphones, routing, phonebook, groups and trunks |
-| Configuration scope | One board and one focused interaction model | Reusable packages and profiles spanning several devices and use cases |
-
-Choose `esphome-intercom` when room-to-room calls, SIP equipment, a door station
-or Home Assistant phone routing are part of the goal; duplicating those features
-here is explicitly out of scope. Choose this project when the board should
-behave primarily as a compact Assist appliance with volume and
-media controls, multiple wake-word choices and configurable LED animations.
-
-Both designs can use the board at 48 kHz with its two microphones, synchronized
-playback reference and local AEC.
-
-## What it does
-
-| Voice and audio | Experience and control |
-|---|---|
-| 🎙️ **Local voice satellite**<br>On-device wake words and the complete Home Assistant Assist pipeline | 💡 **Visible feedback**<br>Seven-LED status ring with configurable phase animations and volume display |
-| 🔊 **Full-duplex audio**<br>48 kHz playback with dual microphones, synchronized reference and local AEC | 🎛️ **Live Home Assistant controls**<br>Wake words, sensitivity, microphone gain, mute, sounds and brightness without reflashing |
-| 🎵 **Music and announcements**<br>Music Assistant playback, mixed announcements and automatic ducking | ⏱️ **Voice timers**<br>Countdown state, ring indication and spoken cancellation |
-
-- **Voice assistant**: on-device wake words via `micro_wake_word`, with
-  `okay_nabu` enabled by default and `hey_jarvis`, `alexa` and `hey_mycroft`
-  available as alternatives, plus the full Home Assistant Assist pipeline (STT / LLM / TTS),
-  a wake beep and music ducking while it listens.
-- **Measured wake-word sensitivity**: each model has its own cutoffs, based on
-  a reproducible 5.3-hour DiPCo false-accept sweep and a speaker-disjoint
-  synthetic positive corpus. The resulting Least sensitive preset was also
-  tested on the board. Custom cutoffs remain available for rooms that need
-  further tuning. See
-  [Wake-word sensitivity validation](docs/WAKE_WORD_VALIDATION.md).
-- **Dual-mic local AEC**: both physical microphones and the board's analog
-  playback-reference channel feed Espressif's AFE, allowing wake-word detection
-  to continue while the device is speaking or playing audio.
-- **Simultaneous music and announcements**: a mixer speaker blends the media and
-  announcement pipelines, so a doorbell announcement plays while the music is
-  ducked. Both are exposed to Music Assistant.
-- **LED ring**: one state machine drives it. Boot, no-Wi-Fi, no-HA, listening,
-  thinking, replying, timer counting, ringing, volume changed - each a distinct
-  colour/effect. Brightness and the animation for the listening / thinking /
-  replying phases are pickable from HA: solid plus 14 animations - pulses,
-  breathe, wipe, scan, spinner, comet, twinkle, fireworks, fire, rainbows.
-- **Timers**: set by voice, with a seven-LED countdown and a "Next timer" sensor
-  in HA. Home Assistant automations can invoke the same local ringing behaviour.
-- **Buttons**: Key 1 raises volume, Key 2 contextually stops ringing, Assist or
-  announcements, controls music, or starts Assist, Key 3 lowers volume, and
-  Boot toggles the persistent microphone privacy mute.
-- **Boot chime**: a short "ready" sound once the device connects to HA
-  (toggleable, and it also settles the amp so the ring boots silent).
-- **Tunable live from HA**: microphone mute, post-AFE mic gain, LED brightness
-  and wake-word sensitivity are all entities, so there's no reflashing to tune it.
-
-## Audio rates and resource tradeoff
-
-The shared physical codec bus and speaker output run at **48 kHz** with four
-**16-bit TDM slots and 16-bit samples**. The stack
-converts the selected microphone/reference inputs to **16 kHz** before
-Espressif's AFE, Micro Wake Word and Home Assistant. Music and TTS therefore
-retain 48 kHz playback while the speech pipeline stays at its native rate.
-
-This is possible because the audio stack preserves all four physical
-TDM slots for clock timing but transfers only the slots each DMA direction
-uses: RX carries the two microphones plus analog playback reference, and TX
-carries the single speaker slot. With the 16-bit framing, the stack can retain
-its normal processor margin and select the DMA geometry automatically. The
-validated build uses six 384-frame descriptors, with 18 KiB of DMA payload
-storage instead of 36 KiB if both directions transferred all four slots.
-Large buffers and media-decoder stacks use the board's PSRAM so Voice Assistant
-does not compete with I2S DMA, while latency-sensitive task stacks retain their
-default internal-RAM placement.
-
-The tradeoff is additional rate-conversion work and reliance on a pinned
-upstream development revision until the change is available in a published
-Audio Stack release. See
-[Hardware: Shared full-duplex bus](docs/HARDWARE.md#shared-full-duplex-bus) for the
-measured DMA geometry and validation results.
+The firmware uses
+[esphome-audio-stack](https://github.com/n-IA-hane/esphome-audio-stack) for
+full-duplex audio and Espressif AFE integration, and
+[ESPHome](https://esphome.io) for the device components and Home Assistant
+connection. [jensenbox](https://github.com/jensenbox/waveshare-esp32-s3-audio)
+provided the early ESP-master I2S layout that informed bring-up.
+The sounds and Assist phase/ducking behavior follow
+[Home Assistant Voice PE](https://github.com/esphome/home-assistant-voice-pe).
 
 > [!TIP]
-> ⭐ **Enjoying this project?** Every star is real motivation to keep it going.
+> If you find this firmware useful, a star on
+> [GitHub](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
+> is a welcome way to support the project.
 >
 > [![Star this repo](https://img.shields.io/github/stars/jyoushiki/esphome-waveshare-esp32-s3-audio-va?style=social)](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va)
-
-
-## Installation
-
-The **precompiled release is the default and recommended route**. It can be
-installed through the project browser installer, receives Wi-Fi credentials
-afterwards and supports managed stable or beta updates without ESPHome Device
-Builder.
-
-**[Open the browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
-in Chrome or Edge, connect the board over USB and select **Install**. The page
-shows the exact firmware version it will flash and is generated from the same
-universal binary attached to the GitHub release.
-
-See **[Installation and updates](docs/INSTALLATION.md)** for the illustrated
-first-flash procedure, Wi-Fi provisioning, update channels and recovery. The
-same guide documents the optional YAML route for developers and users who need
-compile-time substitutions, diagnostic packages or firmware modifications.
-
-## Documentation
-
-Documentation for this firmware lives with this repository so that it can be
-versioned together with the implementation:
-
-- **This README**: project choice, features and user-facing
-  configuration overview.
-- **[Installation and updates](docs/INSTALLATION.md)**: precompiled first-flash,
-  stable/beta OTA channels, advanced source builds, network, validation and
-  rollback.
-- **[Using the voice assistant](docs/USAGE.md)**: physical buttons, wake words,
-  Home Assistant controls, diagnostic entities and LED-ring meanings.
-- **[Wake-word sensitivity validation](docs/WAKE_WORD_VALIDATION.md)**:
-  reproducible negative and positive benchmarks, cutoff-selection process and
-  current preset results.
-- **[Public beta testing](docs/BETA_TESTING.md)**: basic and extended test
-  matrices plus a consistent results template.
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)**: symptom-led checks for builds,
-  connectivity, wake words, capture, playback and runtime audio faults.
-- **[Diagnostic tools](docs/DIAGNOSTICS.md)**: optional raw-TDM and AFE-runtime
-  packages for investigating the audio path.
-- **[Hardware reference](docs/HARDWARE.md)**: sourced pinout, codecs, TDM slot
-  map, measured DMA geometry, AEC reference and hardware bring-up findings.
-- **[Changelog](CHANGELOG.md)**: release history and hardware validation notes.
-- **[`waveshare-va.yaml`](waveshare-va.yaml)**: the complete, annotated and
-  editable firmware configuration.
-
-Michał's wiki documents his stock-ESPHome implementation. It remains useful for
-that project and for historical context, but it is not authoritative for this
-firmware: in particular, its two-bus audio architecture, 16 kHz playback advice
-and lack of local AEC do not apply here. Installation, configuration, LED-ring,
-troubleshooting and FAQ guides specific to this project will therefore be kept
-locally rather than linked across repositories.
-
-## How the shared I2S bus is handled
-
-The board wires the **ES8311 (DAC) and the ES7210 (ADC) to the same BCLK/LRCLK
-pins**, and only one device can drive those clocks. Native ESPHome's independent
-microphone and speaker components cannot coordinate that peripheral while also
-exposing the ES7210 TDM channels needed for echo cancellation.
-
-The external `esp_audio_stack` owns RX and TX together on a 48 kHz, four-slot,
-16-bit physical bus. It transfers TDM slots 0 and 2 as the two microphones and
-slot 1 as the analog playback reference through RX DMA, while TX DMA carries
-only speaker slot 0. Espressif's dual-mic AFE receives a synchronized 16 kHz
-conversion, performs AEC and dual-microphone Speech Enhancement/BSS, then
-applies post-AFE AGC and publishes processed mono audio to Micro Wake Word and
-Home Assistant. ESP-SR omits its separate NS stage from this dual-mic graph;
-playback remains at 48 kHz. The annotated configuration is in
-[`waveshare-va.yaml`](waveshare-va.yaml).
-
-
-## Repository layout
-
-```
-prebuilt/
-  waveshare-va.factory.yaml # credential-free universal release wrapper
-waveshare-va.yaml           # complete editable firmware and source of truth
-secrets.example.yaml        # optional source-build credentials template
-base/
-  sounds/                   # bundled project-owned audio assets
-docs/
-  INSTALLATION.md          # install, update, rollback and WAV capture
-  USAGE.md                 # controls, entities and LED states
-  BETA_TESTING.md          # public beta test matrix and report format
-  TROUBLESHOOTING.md       # symptom-led diagnosis
-  DIAGNOSTICS.md           # opt-in raw-TDM and AFE runtime instrumentation
-  WAKE_WORD_VALIDATION.md  # sensitivity methodology and selected cutoffs
-  HARDWARE.md              # pinout, I2C map and audio architecture
-benchmarks/
-  dipco/                   # negative-corpus reports and complete cutoff data
-  positive/                # manifests, split results and candidate rationale
-scripts/
-  validate.py              # offline YAML check (syntax, substitutions, duplicate ids)
-  esplog.py                # stream device logs over the native API
-  benchmark_dipco.py       # reproduce the negative false-accept sweep
-  generate_positive_samples.py # generate the pinned synthetic corpus
-  benchmark_positive.py    # reproduce positive relative-recall evaluation
-```
-
-## Configuration
-
-Day-to-day settings are available as Home Assistant entities: mic gain,
-LED brightness, the ring animation per assistant phase
-(Listening / Thinking / Replying effect), wake-word sensitivity, wake sound,
-boot sound, microphone mute.
-
-The precompiled firmware uses the documented defaults. The following
-compile-time substitutions are available only when using the optional source
-build through `waveshare-va.yaml`:
-
-| Substitution | Default | What it does |
-|---|---|---|
-| `name` / `friendly_name` | `waveshare-voice` / `Waveshare Voice` | Device name. Changing `name` re-creates every entity in HA. |
-| `volume_min` / `volume_max` | `0.4` / `0.8` | Media player clamps, because the onboard amp distorts near the top. |
-| `hidden_ssid` | `false` | `true` enables `fast_connect` for a hidden SSID. |
-| `boot_sound_file` | repo `startup.mp3` | The connect-to-HA chime. Any URL or local MP3/FLAC/WAV. |
-| `wake_chime_capture_delay` | `600ms` | Delay before Assist starts capturing after the wake chime begins; tune for custom sounds. |
-
-Pins and the audio format are substitutions too (in `waveshare-va.yaml`), but you
-should not need them unless you are porting to another board.
-
-## Credits
-
-- **[Michał Zaniewicz](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)**:
-  the original firmware and repository this project grew from. Its copyright
-  and license remain preserved.
-- **[esphome-audio-stack](https://github.com/n-IA-hane/esphome-audio-stack)**:
-  the external full-duplex audio and Espressif AFE integration used by this
-  firmware.
-- **[jensenbox](https://github.com/jensenbox/waveshare-esp32-s3-audio)**: the
-  early ESP-master I2S layout that informed this board's bring-up.
-- **[ESPHome](https://esphome.io)**: everything the firmware is built out of.
-- **[Home Assistant Voice PE](https://github.com/esphome/home-assistant-voice-pe)**:
-  the sounds, and the phase/ducking model the LED state machine follows.
-
 
 ## License and attribution
 
@@ -301,3 +188,47 @@ Subsequent development and the current project architecture are
 Copyright (c) 2026 Juan Marcos Torero.
 
 See [LICENSE](LICENSE) for the full license terms.
+
+## Repository layout
+
+The complete configuration is [`waveshare-va.yaml`](waveshare-va.yaml).
+See [Installation and updates](docs/INSTALLATION.md#advanced-build-from-the-yaml-source)
+for source-build requirements and setup.
+
+```text
+waveshare-va.yaml           # complete editable firmware configuration
+secrets.example.yaml        # optional source-build credentials template
+prebuilt/
+  waveshare-va.factory.yaml # universal release wrapper
+base/
+  sounds/                   # project-owned audio assets
+docs/
+  INSTALLATION.md           # install, update, rollback and WAV capture
+  USAGE.md                  # controls, entities and LED states
+  BETA_TESTING.md           # beta test checklist and report format
+  TROUBLESHOOTING.md        # build, connection and audio troubleshooting
+  DIAGNOSTICS.md            # optional TDM and AFE runtime instrumentation
+  WAKE_WORD_VALIDATION.md   # sensitivity benchmarks and preset selection
+  HARDWARE.md               # pinout, codecs and audio architecture
+  PROJECT_COMPARISON.md     # differences between firmware projects
+benchmarks/
+  dipco/                    # negative-corpus results and cutoff data
+  positive/                 # manifests, recall results and preset rationale
+scripts/
+  validate.py               # offline YAML checks
+  esplog.py                 # device logs over the native API
+  prepare_firmware_channel.py # installer and OTA channel packaging
+  benchmark_dipco.py        # single-channel negative sweep
+  benchmark_dipco_multichannel.py # all-channel negative sweep
+  generate_positive_samples.py # generate the pinned synthetic corpus
+  benchmark_positive.py     # positive recall evaluation
+tests/
+  test_prepare_firmware_channel.py # release packaging tests
+.github/
+  workflows/                # repository checks and firmware releases
+  ISSUE_TEMPLATE/           # bug, beta and feature report forms
+```
+
+Active development is on `dev`. Public betas are frozen GitHub pre-release
+tags; there is no separate beta branch. Source builds should use the YAML
+attached to the release they intend to build.

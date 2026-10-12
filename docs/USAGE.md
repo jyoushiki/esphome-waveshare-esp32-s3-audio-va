@@ -39,10 +39,10 @@ Four on-device models are installed:
 - Alexa
 - Hey Mycroft
 
-ESPHome enables only the first model, **OK Nabu**, on the first boot. Home
-Assistant exposes a switch for each model so that the alternatives can be
-enabled or disabled without rebuilding. Their enabled states are stored in
-flash and restored after reboot.
+All four models are available. **OK Nabu** is enabled by default on a fresh
+installation. Home Assistant exposes a switch for each model so that the
+alternatives can be enabled or disabled without rebuilding. Their enabled
+states are stored in flash and restored after reboot.
 
 Enabling more models makes more phrases available, but also gives the detector
 more opportunities for a false activation. Start with one model while checking
@@ -63,9 +63,11 @@ the installation.
   per-device tuning rather than normal setup.
 
 The presets use different cutoffs for each model because the same numerical
-threshold does not give them equivalent behaviour. We selected these values
-using negative and positive corpus tests, a held-out speaker split and final
-tests on the board. The full method and machine-readable results are in
+threshold does not give them equivalent behaviour. The Least sensitive values
+were selected using negative and positive corpus tests, a held-out speaker
+split and a hardware check. The other presets retain their existing cutoffs;
+the benchmark measures their false-accept rates and recall for comparison.
+The full method and machine-readable results are in
 [Wake-word sensitivity validation](WAKE_WORD_VALIDATION.md).
 
 ## Everyday Home Assistant controls
@@ -128,6 +130,11 @@ The amplifier-enable switch and factory-reset button are intentionally internal
 and are not exposed for normal control. The amplifier follows audio ownership
 automatically; manually controlling it would make the hardware state disagree
 with the playback pipeline.
+
+Custom probability cutoffs are limited to `1/255` through `254/255`
+(approximately 0.00392–0.99608). Zero prevents the detector from rearming;
+`255/255` prevents detection. A saved zero from earlier firmware is corrected
+to `1/255` when Custom settings are applied.
 
 ## LED ring states
 
