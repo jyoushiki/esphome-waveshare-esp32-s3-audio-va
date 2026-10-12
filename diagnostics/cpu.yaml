@@ -1,0 +1,40 @@
+# Add alongside resources.yaml. Runtime accounting changes the measured build;
+# compare baseline and migration with this same package enabled on both.
+esp32:
+  framework:
+    sdkconfig_options:
+      CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS: "y"
+      CONFIG_FREERTOS_RUN_TIME_STATS_USING_ESP_TIMER: "y"
+
+interval:
+  - interval: 10s
+    then:
+      - lambda: waveshare_diagnostics::profiler().sample();
+  - interval: 60s
+    then:
+      - lambda: waveshare_diagnostics::profiler().sample(true);
+
+sensor:
+  - platform: template
+    name: "Resource CPU 0 busy"
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 10s
+    lambda: return waveshare_diagnostics::profiler().busy[0];
+  - platform: template
+    name: "Resource CPU 1 busy"
+    unit_of_measurement: "%"
+    accuracy_decimals: 1
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 10s
+    lambda: return waveshare_diagnostics::profiler().busy[1];
+
+button:
+  - platform: template
+    name: "Resource task stack snapshot"
+    entity_category: diagnostic
+    on_press:
+      - lambda: waveshare_diagnostics::profiler().sample(true);

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Require ESPHome 2026.9.1 and use it for release builds.
+- Migrate HTTP music, Assist replies and embedded sounds to `speaker_source`
+  with separate `media_source` instances. Preserve player identity, mono FLAC
+  preferences, volume mapping, ducking, sound priority and timer repeat delay.
+- Use default HTTP source buffers and Wi-Fi driver tuning.
+- Add opt-in memory and CPU/task diagnostics plus a serial-log resource
+  summary tool and a repeatable baseline/comparison procedure. No Sendspin
+  source is enabled in this migration.
+
 ## [2.0.0] - 2026-10-12
 
 First stable release of the 48 kHz firmware for the

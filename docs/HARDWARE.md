@@ -205,6 +205,14 @@ transitions. Moving every task in either direction would trade realtime
 behavior against the contiguous internal heap needed when both media pipelines
 are active.
 
+The development playback configuration uses separate HTTP media and
+announcement sources and an embedded-file announcement source. Decoder stacks
+use PSRAM; HTTP reader stacks remain internal. HTTP sources use ESPHome's
+default 50,000-byte buffers, and Wi-Fi driver tuning uses its defaults. Board,
+AFE, PSRAM and Wi-Fi power-save settings remain unchanged. See
+[resource comparisons](DIAGNOSTICS.md#playback-resource-comparisons) for the
+measurement procedure.
+
 ## Speaker and amplifier
 
 The ES8311 provides one mono output to the NS4150B amplifier. A second playback

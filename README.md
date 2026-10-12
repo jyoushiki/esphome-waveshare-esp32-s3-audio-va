@@ -45,7 +45,7 @@ enabled in Home Assistant.
 The [installation guide](docs/INSTALLATION.md) covers first-flash setup,
 Wi-Fi provisioning, channel selection and recovery. It also explains how to
 build from the complete `waveshare-va.yaml` if you want to modify the firmware
-or add diagnostic packages. Source builds require ESPHome 2026.9.0 or newer,
+or add diagnostic packages. Source builds require ESPHome 2026.9.1 or newer,
 ESP-IDF and a host with enough memory for the audio stack and wake-word models.
 
 ## Features

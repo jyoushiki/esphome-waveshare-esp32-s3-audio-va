@@ -1,0 +1,86 @@
+# Optional memory baseline. No audio telemetry or runtime DEBUG logging needed.
+# Include in both baseline and migrated builds for comparable measurements.
+esphome:
+  includes:
+    - diagnostics/resource-profiler.h
+
+debug:
+  update_interval: 5s
+
+sensor:
+  - platform: debug
+    loop_time:
+      name: "Resource loop interval maximum"
+      id: resource_loop_time
+
+  - platform: template
+    name: "Resource internal RAM free"
+    id: resource_internal_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+
+  - platform: template
+    name: "Resource internal RAM minimum free"
+    id: resource_internal_min_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+
+  - platform: template
+    name: "Resource internal RAM largest block"
+    id: resource_internal_largest_block
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+
+  - platform: template
+    name: "Resource PSRAM free"
+    id: resource_psram_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+  - platform: template
+    name: "Resource PSRAM minimum free"
+    id: resource_psram_min_free
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+  - platform: template
+    name: "Resource PSRAM largest block"
+    id: resource_psram_largest_block
+    unit_of_measurement: B
+    accuracy_decimals: 0
+    entity_category: diagnostic
+    state_class: measurement
+    update_interval: 5s
+    lambda: return heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          const uint32_t internal_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+          const uint32_t psram_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
+          ESP_LOGI("resources", "uptime_ms=%u internal_free_B=%u internal_min_B=%u internal_block_B=%u psram_free_B=%u psram_min_B=%u psram_block_B=%u loop_max_ms=%.0f",
+            unsigned(millis()), unsigned(heap_caps_get_free_size(internal_caps)),
+            unsigned(heap_caps_get_minimum_free_size(internal_caps)), unsigned(heap_caps_get_largest_free_block(internal_caps)),
+            unsigned(heap_caps_get_free_size(psram_caps)), unsigned(heap_caps_get_minimum_free_size(psram_caps)),
+            unsigned(heap_caps_get_largest_free_block(psram_caps)), id(resource_loop_time).state);

@@ -89,7 +89,7 @@ esphome:
   name_add_mac_suffix: true
   # The pinned Audio Stack release requires ESPHome's 2026.9 audio and
   # PSRAM-DMA foundations.
-  min_version: 2026.9.0
+  min_version: 2026.9.1
   on_boot:
     # Publish a "no timer" placeholder and paint the ring as early as we can, so
     # the device shows life while Wi-Fi/API are still coming up.
@@ -367,24 +367,51 @@ speaker:
     id: media_resampling_speaker
     output_speaker: media_mixing_input
 
+audio_file:
+  - id: timer_finished_sound
+    file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/timer_finished.flac
+  - id: wake_word_triggered_sound
+    file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/wake_word_triggered.flac
+  - id: error_cloud_expired
+    file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/error_cloud_expired.mp3
+  - id: boot_sound_custom
+    file: ${boot_sound_file}
+
+# Sources belong to one pipeline each. HTTP sources use ESPHome defaults
+# for their network buffers; decoder stacks remain in PSRAM.
+media_source:
+  - platform: audio_file
+    id: announcement_file_source
+    task_stack_in_psram: true
+  - platform: audio_http
+    id: announcement_http_source
+    task_stack_in_psram: true
+  - platform: audio_http
+    id: media_http_source
+    task_stack_in_psram: true
+
 media_player:
-  - platform: speaker
+  - platform: speaker_source
     id: external_media_player
     name: None
     internal: False
-    # Keep decoder stacks in PSRAM. ESPHome deliberately leaves the HTTP
-    # reader stack in internal RAM, where esp_http_client requires it.
-    task_stack_in_psram: true
+    # Decoder stack placement is configured on the sources above; HTTP
+    # reader stacks retain ESPHome's required internal-RAM placement.
     volume_increment: 0.05
     volume_min: ${volume_min}
     volume_max: ${volume_max}
     announcement_pipeline:
       speaker: announcement_resampling_speaker
+      sources:
+        - announcement_file_source
+        - announcement_http_source
       format: FLAC              # cheapest codec for the S3
       num_channels: 1           # stereo is pointless for announcements
       sample_rate: 48000        # what Music Assistant serves
     media_pipeline:
       speaker: media_resampling_speaker
+      sources:
+        - media_http_source
       format: FLAC
       num_channels: 1           # mono hardware, one speaker
       sample_rate: 48000
@@ -434,15 +461,6 @@ media_player:
           - script.execute:
               id: control_leds_volume_changed
               volume_level: !lambda 'return x;'
-    files:
-      - id: timer_finished_sound
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/timer_finished.flac
-      - id: wake_word_triggered_sound
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/wake_word_triggered.flac
-      - id: error_cloud_expired
-        file: https://github.com/esphome/home-assistant-voice-pe/raw/${voice_pe_assets_ref}/sounds/error_cloud_expired.mp3
-      - id: boot_sound_custom
-        file: ${boot_sound_file}
 
 micro_wake_word:
   id: mww
@@ -495,8 +513,8 @@ micro_wake_word:
                                   - script.execute:
                                       id: play_sound
                                       priority: true
-                                      sound_file: !lambda return id(wake_word_triggered_sound);
-                                  # play_file() is queued, so anchor the delay to
+                                      sound_file: "wake_word_triggered_sound"
+                                  # Playback is queued, so anchor the delay to
                                   # actual playback rather than the queue call.
                                   # The 947 ms file has a long quiet tail, while
                                   # measured speaker/pipeline latency places its
@@ -544,7 +562,7 @@ voice_assistant:
           - script.execute:
               id: play_sound
               priority: true
-              sound_file: !lambda return id(boot_sound_custom);
+              sound_file: "boot_sound_custom"
   on_client_disconnected:
     - voice_assistant.stop:
     - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
@@ -568,7 +586,7 @@ voice_assistant:
           - script.execute:
               id: play_sound
               priority: true
-              sound_file: !lambda return id(error_cloud_expired);
+              sound_file: "error_cloud_expired"
   on_start:
     - mixer_speaker.apply_ducking:
         id: media_mixing_input
@@ -1067,7 +1085,7 @@ script:
       - script.execute:
           id: play_sound
           priority: true
-          sound_file: !lambda return id(timer_finished_sound);
+          sound_file: "timer_finished_sound"
 
   - id: enable_repeat_one
     then:
@@ -1077,7 +1095,10 @@ script:
               .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_ONE)
               .set_announcement(true)
               .perform();
-            id(external_media_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 500);
+      - speaker_source.set_playlist_delay:
+          id: external_media_player
+          pipeline: announcement
+          delay: 500ms
 
   - id: disable_repeat
     then:
@@ -1087,12 +1108,15 @@ script:
               .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_REPEAT_OFF)
               .set_announcement(true)
               .perform();
-            id(external_media_player)->set_playlist_delay_ms(speaker::AudioPipelineType::ANNOUNCEMENT, 0);
+      - speaker_source.set_playlist_delay:
+          id: external_media_player
+          pipeline: announcement
+          delay: 0ms
 
   - id: play_sound
     parameters:
       priority: bool
-      sound_file: "audio::AudioFile*"
+      sound_file: string
     then:
       - lambda: |-
           if (priority) {
@@ -1103,7 +1127,10 @@ script:
               .perform();
           }
           if ((id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) || priority) {
-            id(external_media_player)->play_file(sound_file, true, false);
+            id(external_media_player)->make_call()
+              .set_media_url(std::string("audio-file://") + sound_file)
+              .set_announcement(true)
+              .perform();
           }
 
   # Keep the public timer sensors and the cached active-state flag consistent

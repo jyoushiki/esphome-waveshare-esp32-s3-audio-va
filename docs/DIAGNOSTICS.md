@@ -69,6 +69,76 @@ leave the error counters unchanged after initialization.
 Remove the package after diagnosis because its DEBUG logging and telemetry add
 work to the real-time audio path.
 
+## Playback resource comparisons
+
+Before changing the playback architecture, include these packages in the local
+wrapper that already contains your device name and Wi-Fi secrets:
+
+```yaml
+packages:
+  firmware: !include waveshare-va.yaml
+  resource_diagnostics: !include diagnostics/resources.yaml
+  cpu_diagnostics: !include diagnostics/cpu.yaml
+```
+
+`resources.yaml` reports internal 8-bit RAM and PSRAM separately: current free
+bytes, allocator minimum free bytes since boot, and largest contiguous free
+block. It also reports the maximum ESPHome loop interval observed in each
+five-second reporting window. Loop interval is a responsiveness measurement,
+not CPU utilization. The allocator minima are sums of each matching heap
+region's low-water mark; they need not represent one simultaneous allocation.
+Five-second sampling can miss brief changes in the largest block.
+
+`cpu.yaml` additionally enables FreeRTOS runtime accounting. It reports each
+core's busy percentage over the preceding sample interval using idle-task
+runtime, and logs task stack minimum-free bytes once a minute or when the
+**Resource task stack snapshot** button is pressed. The first CPU measurement
+needs two samples. Busy percentage is an idle-time estimate, not attribution of
+CPU time to individual tasks or interrupts. Do not interpret loop time or CPU
+frequency as utilization. Stack minima are lifetime high-water marks, not the
+current stack use.
+
+CPU profiling snapshots briefly suspend scheduling and scan task stacks. The
+profiler allocates space for up to 64 task records in PSRAM; failure produces a
+warning rather than a fabricated measurement. Runtime accounting also has
+overhead. Use identical packages, ESPHome/ESP-IDF versions, logger level,
+network settings, wake-word models, volume, and audio files for both builds.
+Keep the more intrusive AFE/TDM packages off for the initial resource comparison.
+After the comparison, remove these packages and repeat listening tests without
+profiling to check for instrumentation effects.
+
+Capture separate logs for these workloads, allowing startup to settle first:
+
+| Workload | Suggested capture |
+|---|---|
+| Connected idle with wake word enabled | 2 minutes |
+| Continuous HTTP music | 3 minutes |
+| Music plus local chimes or ringing | 2 minutes |
+| Music plus repeated Assist requests and TTS replies | 3 minutes |
+| Stopped playback, then repeated start/stop transitions | 2 minutes |
+
+Reboot before independent runs if comparing lifetime heap/stack minima. Use
+the same sequence for a transition run and check whether memory recovers after
+playback stops. Record glitches, resets, Wi-Fi/API reconnects, and task snapshot
+warnings alongside the metrics. A successful compile alone does not validate
+audio behavior or runtime headroom.
+
+For serial logging, use your actual device port (Linux example):
+
+```sh
+esphome logs waveshare-va.local.yaml --device /dev/serial/by-id/YOUR_DEVICE > capture.log 2>&1
+python3 scripts/analyze_resources.py capture.log > capture-summary.json
+```
+
+Stop logging with Ctrl-C. The analyzer accepts complete `[resources:...]` log
+rows and reports sample count, minimum, median, nearest-rank p95, and maximum,
+plus observed task stack minima. Keep raw logs locally: other firmware log
+lines can contain recognized speech, media URLs, or network information.
+
+Preserve the baseline YAML and firmware binary before migrating. For the first
+migration, set HTTP buffers explicitly to the old player's values; compare
+architecture with equivalent buffers before attempting memory tuning.
+
 ## Reporting results
 
 Record the installed firmware version, whether the build is precompiled or
