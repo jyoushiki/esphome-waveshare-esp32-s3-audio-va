@@ -515,7 +515,9 @@ micro_wake_word:
                           else:
                             - if:
                                 condition:
-                                  switch.is_on: wake_sound
+                                  and:
+                                    - switch.is_on: wake_sound
+                                    - switch.is_off: night_mode
                                 then:
                                   - script.execute:
                                       id: play_sound
@@ -555,21 +557,25 @@ voice_assistant:
     - micro_wake_word.start:
     - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
     - script.execute: control_leds
-    # One-shot "ready" chime. It MUST run after micro_wake_word.start above: the
-    # speaker is a slave to the mic's I2S clock, so playing before the mic is
-    # capturing hangs the announcement (and then wake word stops working). The
-    # flag is set first so an HA reconnect can't replay it.
+    # Handle the ready chime once per boot, after wake-word capture starts.
+    # A chime suppressed at night stays handled, so reconnecting in the day
+    # cannot play a delayed startup sound.
     - if:
         condition:
           - lambda: 'return !id(boot_chime_done);'
-          - switch.is_on: boot_sound
         then:
           - lambda: id(boot_chime_done) = true;
-          - delay: 1s            # let the mic-master clock settle
-          - script.execute:
-              id: play_sound
-              priority: true
-              sound_file: "boot_sound_custom"
+          - delay: 1s
+          - if:
+              condition:
+                and:
+                  - switch.is_on: boot_sound
+                  - switch.is_off: night_mode
+              then:
+                - script.execute:
+                    id: play_sound
+                    priority: true
+                    sound_file: "boot_sound_custom"
   on_client_disconnected:
     - voice_assistant.stop:
     - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
@@ -845,6 +851,10 @@ globals:
     type: float
     restore_value: no
     initial_value: '1.0'
+  - id: led_ring_level
+    type: float
+    restore_value: no
+    initial_value: '0.8'
   - id: volume_display_level
     type: float
     restore_value: no
@@ -946,7 +956,13 @@ script:
           );
   - id: flash_ring
     then:
-      - light.turn_on: { id: status_ring, red: 1.0, green: 0.0, blue: 0.0, brightness: 100%, effect: "None" }
+      - script.execute:
+          id: led_set_effect
+          effect: solid
+          r: 1.0
+          g: 0.0
+          b: 0.0
+          brightness: 1.0
       - delay: 250ms
       # Return to the real state instead of going dark (e.g. if a timer is
       # counting or the VA is active while the mic is muted/unmuted).
@@ -965,11 +981,15 @@ script:
       brightness: float
     then:
       - lambda: |-
+          const bool night = id(night_mode).state;
+          // Cap exceptional states too, including the privacy acknowledgement.
+          const float level = night ? std::min(brightness, id(night_led_brightness).state) : brightness;
           id(led_ring_color_r) = r;
           id(led_ring_color_g) = g;
           id(led_ring_color_b) = b;
+          id(led_ring_level) = level;
           ESP_LOGI("led", "led_set_effect: effect='%s' rgb(%.2f, %.2f, %.2f) brightness=%.2f",
-                   effect.c_str(), r, g, b, brightness);
+                   effect.c_str(), r, g, b, level);
       - if:
           condition:
             lambda: 'return effect == "off";'
@@ -983,14 +1003,17 @@ script:
                   - light.turn_on:
                       id: status_ring
                       effect: "None"    # clear any running effect so solid is steady
-                      brightness: !lambda 'return brightness;'
+                      brightness: !lambda 'return id(led_ring_level);'
+                      color_brightness: 100%
                       red: !lambda 'return id(led_ring_color_r);'
                       green: !lambda 'return id(led_ring_color_g);'
                       blue: !lambda 'return id(led_ring_color_b);'
                 else:
                   - light.turn_on:
                       id: status_ring
-                      brightness: !lambda 'return brightness;'
+                      brightness: !lambda 'return id(led_ring_level);'
+                      # Pulse effects overwrite brightness; RGB scaling is normalized away.
+                      color_brightness: !lambda 'return id(night_mode).state && effect.rfind("Pulse", 0) == 0 ? id(led_ring_level) : 1.0f;'
                       red: !lambda 'return id(led_ring_color_r);'
                       green: !lambda 'return id(led_ring_color_g);'
                       blue: !lambda 'return id(led_ring_color_b);'
@@ -1017,7 +1040,7 @@ script:
 
           auto set = [&](const std::string &effect, float r, float g, float b) {
             id(led_set_effect).execute(
-              effect, r, g, b, id(led_ring_brightness).state
+              effect, r, g, b, id(night_mode).state ? id(night_led_brightness).state : id(led_ring_brightness).state
             );
           };
 
@@ -1079,10 +1102,13 @@ script:
       volume_level: float
     then:
       - lambda: 'id(volume_display_level) = volume_level;'
-      - light.turn_on:
-          id: status_ring
-          brightness: !lambda 'return id(led_ring_brightness).state;'
+      - script.execute:
+          id: led_set_effect
           effect: "Volume Level"
+          r: 0.0
+          g: 0.0
+          b: 1.0
+          brightness: !lambda 'return id(night_mode).state ? id(night_led_brightness).state : id(led_ring_brightness).state;'
       - delay: 1.2s
       - script.execute: control_leds
 
@@ -1351,6 +1377,16 @@ switch:
     restore_mode: RESTORE_DEFAULT_ON
 
   - platform: template
+    id: night_mode
+    name: Night mode
+    icon: "mdi:weather-night"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on: *repaint_if_ready
+    on_turn_off: *repaint_if_ready
+
+  - platform: template
     id: timer_countdown_ring
     name: Timer countdown on ring
     icon: "mdi:timer-sand"
@@ -1526,14 +1562,21 @@ number:
     step: 0.05
     initial_value: 0.8
     mode: slider
-    on_value:
-      - if:
-          condition:
-            light.is_on: status_ring
-          then:
-            - light.turn_on:
-                id: status_ring
-                brightness: !lambda 'return x;'
+    on_value: *repaint_if_ready
+
+  - platform: template
+    id: night_led_brightness
+    name: "Night LED Ring Brightness"
+    icon: mdi:brightness-4
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 0.2
+    max_value: 1.0
+    step: 0.05
+    initial_value: 0.3
+    mode: slider
+    on_value: *repaint_if_ready
 
 sensor:
   - platform: template

@@ -69,6 +69,8 @@ ESP-IDF and a host with enough memory for the audio stack and wake-word models.
   thinking and replying, and adjust brightness from Home Assistant.
 - A switchable ready chime after connecting to Home Assistant and a wake chime
   before Assist capture. The amplifier stays off until playback needs it.
+- Night mode uses a separate ring brightness and skips the ready and wake
+  chimes. Replies, music and timer sounds remain audible.
 
 Each wake-word model has its own sensitivity thresholds. Least sensitive is
 available for rooms where television or conversation causes unwanted

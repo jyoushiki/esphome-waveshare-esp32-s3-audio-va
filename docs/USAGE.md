@@ -135,6 +135,8 @@ The full method and machine-readable results are in
 | Wake sound | Enables the short acknowledgement chime before Assist capture | Yes |
 | Boot sound | Enables the one-shot ready sound after connecting to Home Assistant | Yes |
 | LED Ring Brightness | Sets the brightness used by firmware-controlled ring states | Yes |
+| Night mode | Uses night brightness and suppresses ready/wake chimes; off by default | Yes |
+| Night LED Ring Brightness | Sets night brightness; defaults to 30%, adjustable from 20% to 100% | Yes |
 | Timer countdown on ring | Shows the timer countdown on the ring; on by default | Yes |
 | Listening effect | Selects the animation used while speech is being captured | Yes |
 | Thinking effect | Selects the animation used while Home Assistant processes a request | Yes |
@@ -149,6 +151,27 @@ wake-word detection and Home Assistant. Increase it cautiously: clipping cannot
 be repaired later in the pipeline. For objective comparison, use the temporary
 WAV-recording procedure in the
 [installation guide](INSTALLATION.md#temporarily-record-the-audio-received-by-assist).
+
+## Night mode
+
+Turn on **Night mode** to use **Night LED Ring Brightness** instead of the
+daytime ring brightness and skip the ready and wake chimes. It defaults to off
+and remembers its setting after reboot. Home Assistant can toggle it from a
+bedtime scene or scheduled automation; the firmware does not choose a schedule.
+
+Night mode preserves the saved daytime brightness and **Wake sound** / **Boot
+sound** switches. Turning it off restores their normal behavior. A ready chime
+skipped at startup is not replayed on a later Home Assistant reconnection. Wake
+capture starts without the chime delay when the wake chime is suppressed.
+
+The night brightness also applies to volume feedback, pulse animations and the
+brief microphone-mute acknowledgement. The persistent red privacy indication
+stays visible at no more than its normal 25% brightness. Assist replies, music,
+timer sounds and external ringing remain audible, with their normal controls.
+
+Night mode dims timer countdowns but does not hide them. Turn off **Timer
+countdown on ring** separately for a dark countdown; ringing and other status
+indications retain their normal priority.
 
 ## Firmware update entities
 

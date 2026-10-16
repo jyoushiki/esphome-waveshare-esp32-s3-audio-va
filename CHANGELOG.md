@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add a remembered **Night mode** switch and separate night ring brightness.
+  Dim status, volume and privacy feedback; suppress wake and ready chimes
+  without changing their saved switches. Replies and ringing remain audible.
 - Add a remembered **Timer countdown on ring** switch, enabled by default.
   Turning it off hides the countdown while retaining ringing, Assist,
   connectivity and microphone-privacy feedback.
