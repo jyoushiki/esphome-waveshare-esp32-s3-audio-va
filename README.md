@@ -61,7 +61,8 @@ ESP-IDF and a host with enough memory for the audio stack and wake-word models.
 - Experimental Sendspin music playback for beta testing, alongside HTTP
   playback. See [Sendspin setup and testing](docs/USAGE.md#sendspin-beta).
 - Voice timers, with a seven-LED countdown for the nearest active timer and a
-  Next timer sensor in Home Assistant. Stop ringing with a wake word or Key 2.
+  Next timer sensor in Home Assistant. The countdown display can be switched
+  off. Stop ringing with a wake word or Key 2.
   Home Assistant automations can start and stop the same local ringing behavior.
 - Ring feedback for startup, connectivity, Assist phases, timers, mute and
   volume changes. Choose solid light or one of 14 animations for listening,

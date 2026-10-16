@@ -1063,7 +1063,7 @@ script:
             default: break;
           }
 
-          if (timers_active) {                       // a timer is counting down
+          if (timers_active && id(timer_countdown_ring).state) {
             set("Timer Progress", 0.6, 0.0, 0.6);
             return;
           }
@@ -1349,6 +1349,18 @@ switch:
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    id: timer_countdown_ring
+    name: Timer countdown on ring
+    icon: "mdi:timer-sand"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    # Hide only the countdown; ringing and higher-priority states still show.
+    # Restore callbacks must wait until the light and assistant are ready.
+    on_turn_on: *repaint_if_ready
+    on_turn_off: *repaint_if_ready
 
   - platform: template
     id: timer_ringing

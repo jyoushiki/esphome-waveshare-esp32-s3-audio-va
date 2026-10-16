@@ -135,6 +135,7 @@ The full method and machine-readable results are in
 | Wake sound | Enables the short acknowledgement chime before Assist capture | Yes |
 | Boot sound | Enables the one-shot ready sound after connecting to Home Assistant | Yes |
 | LED Ring Brightness | Sets the brightness used by firmware-controlled ring states | Yes |
+| Timer countdown on ring | Shows the timer countdown on the ring; on by default | Yes |
 | Listening effect | Selects the animation used while speech is being captured | Yes |
 | Thinking effect | Selects the animation used while Home Assistant processes a request | Yes |
 | Replying effect | Selects the animation used while the reply is played | Yes |
@@ -227,6 +228,13 @@ shows the remaining fraction of the timer that will finish first. It starts
 full and drains from one side of the USB-C connector towards the other. With
 multiple timers, the display automatically moves to the next one when the
 closest timer finishes or is cancelled.
+
+Turn off **Timer countdown on ring** to hide this countdown, for example for a
+nap timer in a dark room. The switch is on by default, remembers its setting
+after reboot, and updates the display immediately when changed. It does not
+cancel or pause timers: their Home Assistant sensors, ringing sound and ringing
+LEDs still work. Assist, connectivity, privacy-mute and volume feedback remain
+visible when applicable.
 
 Home Assistant owns calendar and alarm scheduling. Two device actions expose
 the same local ringing behaviour to automations:

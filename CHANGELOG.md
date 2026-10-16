@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add a remembered **Timer countdown on ring** switch, enabled by default.
+  Turning it off hides the countdown while retaining ringing, Assist,
+  connectivity and microphone-privacy feedback.
 - Require ESPHome 2026.9.1 and use it for release builds.
 - Migrate HTTP music, Assist replies and embedded sounds to `speaker_source`
   with separate `media_source` instances. Preserve player identity, mono FLAC
