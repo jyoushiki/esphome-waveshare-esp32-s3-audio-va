@@ -4,6 +4,11 @@ This guide describes the controls and Home Assistant entities exposed by this
 firmware. Names below are shown without the device-friendly-name prefix that
 Home Assistant may add.
 
+To find this guide for your installed version, open your channel's
+documentation link in the browser installer and follow the README's links.
+Those links stay on the same release. Guides on `main` cover stable firmware;
+`dev` may describe unreleased controls.
+
 ## Physical controls
 
 <img src="buttons.png"

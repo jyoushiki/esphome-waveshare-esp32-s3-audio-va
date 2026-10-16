@@ -24,6 +24,18 @@ The current stable release is `v2.0.0`, the first stable release of the
 48 kHz firmware. See the [changelog](CHANGELOG.md) for features, upgrade
 guidance and release history.
 
+The documentation on `main` covers stable firmware. The `dev` branch may
+include features that are still in development. Choose the guides for your
+installed version:
+
+| Firmware | Release | Documentation |
+|---|---|---|
+| Stable | [v2.0.0](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/releases/tag/v2.0.0) | [All guides](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/blob/v2.0.0/README.md#documentation-and-support) |
+| Public beta | [v2.1.0-beta.1](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/releases/tag/v2.1.0-beta.1) | [All guides](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/blob/v2.1.0-beta.1/README.md#documentation-and-support) |
+
+Betas use fixed release tags from `dev`. There is no separate beta branch.
+We merge tested changes into `main` for stable releases.
+
 ## Installation
 
 Use the [browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)
@@ -31,7 +43,8 @@ for a precompiled installation:
 
 1. Connect the board over USB with a data cable and open the installer in
    Chrome or Edge.
-2. Check the displayed firmware version and select **Install**.
+2. Choose **Stable** (recommended) or **Beta** (for testing), check its version
+   and select its **Connect** button.
 3. Reconnect when prompted and enter your Wi-Fi credentials.
 4. Add the discovered ESPHome device to Home Assistant and assign an Assist
    pipeline.
@@ -134,6 +147,9 @@ internal RAM. See the
 automatic DMA geometry, measured memory use and pin assignments.
 
 ## Documentation and support
+
+The links below open guides and images from the same branch or release tag
+as this README. This keeps all documentation on the version you selected.
 
 - [Installation and updates](docs/INSTALLATION.md): browser installation, source
   builds, network setup and recovery.
