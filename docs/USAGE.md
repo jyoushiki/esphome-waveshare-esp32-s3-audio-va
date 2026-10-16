@@ -4,6 +4,61 @@ This guide describes the controls and Home Assistant entities exposed by this
 firmware. Names below are shown without the device-friendly-name prefix that
 Home Assistant may add.
 
+## Sendspin beta
+
+The development firmware includes a Sendspin music source alongside HTTP
+playback. Use a Sendspin-capable server, such as Music Assistant, whose
+Sendspin player provider is built in. Discovery needs mDNS on the local
+network, and TCP port
+8928 must be reachable between the board and server. See the
+[ESPHome Sendspin documentation](https://esphome.io/components/sendspin/).
+
+Music Assistant can merge the board's Home Assistant and Sendspin protocols
+into one player. In that player's settings, select **Output Protocols →
+Preferred Output Protocol → Sendspin**, save, then stop and restart playback.
+The protocol badges indicate available methods; the **Audio Pipeline** view
+shows which one is active. See
+[Music Assistant player settings](https://www.music-assistant.io/settings/individual-player/).
+
+The ESPHome 2026.9.1 Sendspin client uses legacy, unencrypted transport and
+does not support encrypted pairing. A Music Assistant message saying pairing
+is unavailable is expected for this build. Playback depends on its
+**Allow legacy clients** provider setting, which is currently enabled by
+default. Music Assistant describes that compatibility option as temporary;
+future server versions may require updated client support. See
+[Music Assistant Sendspin settings](https://www.music-assistant.io/player-support/sendspin/).
+
+The existing Home Assistant media player continues to handle HTTP music,
+Assist replies and local sounds. Sendspin music uses that same player and
+speaker pipeline; only one music source plays at a time. Starting HTTP music
+replaces Sendspin music on this board, and a Sendspin stream can replace HTTP
+music. Announcements use their separate pipeline and duck the local music.
+
+Key 1 and Key 3 change this board's volume. While Sendspin is active, Key 2's
+music pause/resume command is forwarded to the Sendspin group, so other group
+members can pause or resume too. Stopping media on the board releases its
+Sendspin playback rather than sending a group-wide stop. Use the server for
+group controls. No additional Sendspin group media-player entity is exposed.
+
+Sendspin is experimental in ESPHome 2026.9.1. This firmware uses its default
+48 kHz FLAC/Opus/PCM preferences and 1 MB audio buffer, with playback and hub
+server task stacks in PSRAM. The mono HTTP preference does not constrain
+Sendspin's codec/channel negotiation; stereo Sendspin streams are downmixed
+by the existing mono speaker pipeline.
+
+Sendspin selects ESPHome's high-performance lwIP and Wi-Fi settings
+automatically. Source builds no longer override `network.enable_high_performance`
+to `false`. These settings trade additional memory for streaming throughput;
+measure with Sendspin connected and playing when assessing available memory.
+
+For beta testing, check discovery, individual and grouped playback, pause and
+resume from Key 2, volume and mute from both the board and server, and recovery
+after restarting the server or reconnecting Wi-Fi. Repeat Assist, local chime,
+timer cancellation and ducking checks while Sendspin plays. Switching between
+HTTP and Sendspin should release the previous music source. Multiroom timing
+needs a listening check with another player; successful solo playback does
+not establish synchronization accuracy.
+
 ## Physical controls
 
 <img src="buttons.png"

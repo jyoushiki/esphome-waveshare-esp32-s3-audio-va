@@ -206,9 +206,11 @@ behavior against the contiguous internal heap needed when both media pipelines
 are active.
 
 The development playback configuration uses separate HTTP media and
-announcement sources and an embedded-file announcement source. Decoder stacks
-use PSRAM; HTTP reader stacks remain internal. HTTP sources use ESPHome's
-default 50,000-byte buffers, and Wi-Fi driver tuning uses its defaults. Board,
+announcement sources, an embedded-file announcement source, and a Sendspin
+music source. Decoder stacks use PSRAM; HTTP reader stacks remain internal.
+HTTP sources use ESPHome's default 50,000-byte buffers. Sendspin uses its
+default 1,000,000-byte audio buffer and requests ESPHome's high-performance
+lwIP and Wi-Fi tuning. Board,
 AFE, PSRAM and Wi-Fi power-save settings remain unchanged. See
 [resource comparisons](DIAGNOSTICS.md#playback-resource-comparisons) for the
 measurement procedure.

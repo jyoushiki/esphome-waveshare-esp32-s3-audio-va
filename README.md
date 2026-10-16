@@ -58,6 +58,8 @@ ESP-IDF and a host with enough memory for the audio stack and wake-word models.
   detection continues while music or spoken replies play.
 - Music Assistant playback and announcements mixed over music. Assist and
   announcements duck music, which returns to its previous level afterwards.
+- Experimental Sendspin music playback for beta testing, alongside HTTP
+  playback. See [Sendspin setup and testing](docs/USAGE.md#sendspin-beta).
 - Voice timers, with a seven-LED countdown for the nearest active timer and a
   Next timer sensor in Home Assistant. Stop ringing with a wake word or Key 2.
   Home Assistant automations can start and stop the same local ringing behavior.

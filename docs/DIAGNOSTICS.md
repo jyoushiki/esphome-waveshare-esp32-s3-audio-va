@@ -117,6 +117,12 @@ Capture separate logs for these workloads, allowing startup to settle first:
 | Music plus repeated Assist requests and TTS replies | 3 minutes |
 | Stopped playback, then repeated start/stop transitions | 2 minutes |
 
+For Sendspin, also capture connected idle with the server available, continuous
+Sendspin music, and Sendspin music with Assist/TTS. Exercise HTTP/Sendspin
+switching and server/Wi-Fi reconnection, and note whether other group members
+are playing. Sendspin adds its own buffer and tasks and requests Wi-Fi driver
+tuning, so HTTP-only measurements do not establish its resource margins.
+
 Reboot before independent runs if comparing lifetime heap/stack minima. Use
 the same sequence for a transition run and check whether memory recovers after
 playback stops. Record glitches, resets, Wi-Fi/API reconnects, and task snapshot

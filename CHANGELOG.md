@@ -6,10 +6,12 @@
 - Migrate HTTP music, Assist replies and embedded sounds to `speaker_source`
   with separate `media_source` instances. Preserve player identity, mono FLAC
   preferences, volume mapping, ducking, sound priority and timer repeat delay.
-- Use default HTTP source buffers and Wi-Fi driver tuning.
+- Use default HTTP source buffers and ESPHome-selected Wi-Fi driver tuning.
+- Add experimental Sendspin music playback to the existing media player,
+  alongside HTTP playback and local/HTTP announcements. Allow Sendspin to
+  select ESPHome's high-performance lwIP and Wi-Fi defaults.
 - Add opt-in memory and CPU/task diagnostics plus a serial-log resource
-  summary tool and a repeatable baseline/comparison procedure. No Sendspin
-  source is enabled in this migration.
+  summary tool and a repeatable baseline/comparison procedure.
 
 ## [2.0.0] - 2026-10-12
 

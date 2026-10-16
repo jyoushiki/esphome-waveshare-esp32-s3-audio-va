@@ -166,11 +166,6 @@ external_components:
   - source: github://n-IA-hane/esphome-audio-stack@v2026.10.2
     components: [esp_audio_stack, esp_afe]
 
-network:
-  # Use normal lwIP TCP windows/mailboxes for the full-duplex audio workload.
-  # This does not override ESPHome's separately selected Wi-Fi buffer settings.
-  enable_high_performance: false
-
 wifi:
   id: wifi_id
   fast_connect: ${hidden_ssid}
@@ -377,6 +372,11 @@ audio_file:
   - id: boot_sound_custom
     file: ${boot_sound_file}
 
+sendspin:
+  # Allow Sendspin to select ESPHome's high-performance lwIP and Wi-Fi defaults.
+  id: sendspin_hub
+  task_stack_in_psram: true
+
 # Sources belong to one pipeline each. HTTP sources use ESPHome defaults
 # for their network buffers; decoder stacks remain in PSRAM.
 media_source:
@@ -389,6 +389,12 @@ media_source:
   - platform: audio_http
     id: media_http_source
     task_stack_in_psram: true
+  - platform: sendspin
+    id: media_sendspin_source
+    sendspin_id: sendspin_hub
+    task_stack_in_psram: true
+    # Retain Sendspin's defaults: 48 kHz, FLAC/Opus/PCM and a 1 MB buffer.
+    # Playback timestamps pass through the resampler, mixer and audio stack.
 
 media_player:
   - platform: speaker_source
@@ -412,6 +418,7 @@ media_player:
       speaker: media_resampling_speaker
       sources:
         - media_http_source
+        - media_sendspin_source
       format: FLAC
       num_channels: 1           # mono hardware, one speaker
       sample_rate: 48000
