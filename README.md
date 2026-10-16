@@ -24,6 +24,18 @@ The current stable release is `v2.0.0`, the first stable release of the
 48 kHz firmware. See the [changelog](CHANGELOG.md) for features, upgrade
 guidance and release history.
 
+The documentation on `main` covers stable firmware. The `dev` branch may
+include features that are still in development. Choose the guides for your
+installed version:
+
+| Firmware | Release | Documentation |
+|---|---|---|
+| Stable | [v2.0.0](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/releases/tag/v2.0.0) | [All guides](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/blob/v2.0.0/README.md#documentation-and-support) |
+| Public beta | [v2.1.0-beta.1](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/releases/tag/v2.1.0-beta.1) | [All guides](https://github.com/jyoushiki/esphome-waveshare-esp32-s3-audio-va/blob/v2.1.0-beta.1/README.md#documentation-and-support) |
+
+Betas use fixed release tags from `dev`. There is no separate beta branch.
+We merge tested changes into `main` for stable releases.
+
 ## Installation
 
 Use the [browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)
@@ -31,7 +43,8 @@ for a precompiled installation:
 
 1. Connect the board over USB with a data cable and open the installer in
    Chrome or Edge.
-2. Check the displayed firmware version and select **Install**.
+2. Choose **Stable** (recommended) or **Beta** (for testing), check its version
+   and select its **Connect** button.
 3. Reconnect when prompted and enter your Wi-Fi credentials.
 4. Add the discovered ESPHome device to Home Assistant and assign an Assist
    pipeline.
@@ -140,6 +153,9 @@ automatic DMA geometry, measured memory use and pin assignments.
 
 ## Documentation and support
 
+The links below open guides and images from the same branch or release tag
+as this README. This keeps all documentation on the version you selected.
+
 - [Installation and updates](docs/INSTALLATION.md): browser installation, source
   builds, network setup and recovery.
 - [Using the voice assistant](docs/USAGE.md): buttons, wake words, Home Assistant
@@ -223,12 +239,15 @@ scripts/
   validate.py               # offline YAML checks
   esplog.py                 # device logs over the native API
   prepare_firmware_channel.py # installer and OTA channel packaging
+  generate_installer.py     # Stable/Beta browser installer page
+  installer.html            # ESP Web Tools page template
   benchmark_dipco.py        # single-channel negative sweep
   benchmark_dipco_multichannel.py # all-channel negative sweep
   generate_positive_samples.py # generate the pinned synthetic corpus
   benchmark_positive.py     # positive recall evaluation
 tests/
   test_prepare_firmware_channel.py # release packaging tests
+  test_generate_installer.py # installer channel and download checks
 .github/
   workflows/                # repository checks and firmware releases
   ISSUE_TEMPLATE/           # bug, beta and feature report forms

@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## [2.1.0-beta.1] - 2026-10-16
+
+This beta tests the audio-source migration, Sendspin playback and new LED
+controls. v2.0.0 remains the stable release.
 
 - Add a remembered **Night mode** switch and separate night ring brightness.
   Dim status, volume and privacy feedback; suppress wake and ready chimes
@@ -8,6 +11,9 @@
 - Add a remembered **Timer countdown on ring** switch, enabled by default.
   Turning it off hides the countdown while retaining ringing, Assist,
   connectivity and microphone-privacy feedback.
+- Add separate Stable and Beta choices to the browser installer. Each has its
+  own version, factory image, release notes, editable source YAML and
+  documentation for that release tag. Update the installer screenshot.
 - Require ESPHome 2026.9.1 and use it for release builds.
 - Migrate HTTP music, Assist replies and embedded sounds to `speaker_source`
   with separate `media_source` instances. Preserve player identity, mono FLAC
@@ -18,6 +24,16 @@
   select ESPHome's high-performance lwIP and Wi-Fi defaults.
 - Add opt-in memory and CPU/task diagnostics plus a serial-log resource
   summary tool and a repeatable baseline/comparison procedure.
+
+Night mode and timer-countdown visibility were inspired by
+[Michał Zaniewicz's firmware](https://github.com/MichalZaniewicz/esphome-waveshare-esp32-s3-audio-va)
+and adapted to this project's LED state machine.
+
+Sendspin remains experimental. The ESPHome 2026.9.1 client uses legacy,
+unencrypted transport and requires Music Assistant's **Allow legacy clients**
+compatibility setting. It does not support encrypted pairing. When Music
+Assistant combines Home Assistant and Sendspin into one player, select
+**Sendspin** as its preferred output protocol and verify it in Audio Pipeline.
 
 ## [2.0.0] - 2026-10-12
 

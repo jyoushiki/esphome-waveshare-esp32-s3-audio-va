@@ -89,9 +89,6 @@ jobs:
           name: waveshare-voice
           path: current-firmware
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-
       - name: Prepare channel files
         env:
           GH_TOKEN: ${{ github.token }}
@@ -132,36 +129,7 @@ jobs:
           touch site/.nojekyll
 
       - name: Generate browser installer
-        env:
-          FIRMWARE_VERSION: ${{ needs.build.outputs.version }}
-        run: |-
-          # ewt-gen expects the build output beside the source YAML. Reuse the
-          # already-built release image instead of compiling a second binary.
-          # The channel preparation step has already located it recursively,
-          # verified its hashes and normalized its output path.
-          mkdir -p .esphome/build/waveshare-voice/build
-          cp site/firmware/beta/waveshare-voice-esp32s3.factory.bin \
-            .esphome/build/waveshare-voice/build/firmware.factory.bin
-
-          # Put the factory entry point at the repository root so `esphome
-          # bundle` can resolve the public firmware include.
-          cp prebuilt/waveshare-va.factory.yaml waveshare-va.factory.yaml
-          sed -i 's|!include ../waveshare-va.yaml|!include waveshare-va.yaml|' \
-            waveshare-va.factory.yaml
-
-          version="${FIRMWARE_VERSION#v}"
-          if [ -z "$version" ]; then
-            version="dev"
-          fi
-
-          uvx \
-            --from 'git+https://github.com/esphome/ewt-gen.git@1f1f7491fd384dff8b743877a6be2f36e8d60c33' \
-            --with 'esphome==2026.9.1' \
-            ewt-gen waveshare-va.factory.yaml \
-            --skip-compile \
-            --fw-version "$version" \
-            --title 'Waveshare ESP32-S3 Voice Assistant' \
-            --output site
+        run: python3 scripts/generate_installer.py site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0

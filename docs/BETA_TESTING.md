@@ -35,14 +35,37 @@ enable **Beta firmware**. Leave only the beta entity enabled: the updater tests
 version equality rather than semantic ordering, so enabling both channels can
 make an older stable release appear as an available update.
 
+## v2.1.0 beta focus
+
+The v2.1.0 betas test the HTTP/embedded audio-source migration, experimental
+Sendspin playback, night mode and the option to hide timer-countdown lighting.
+Run these checks along with the basic test below:
+
+| Test | Expected result |
+|---|---|
+| HTTP music and announcements | Music, local chimes and HTTP replies play normally; ducking and recovery work across repeated transitions |
+| Confirmed Sendspin playback | Select Sendspin as the preferred output protocol, restart playback and verify Sendspin in Music Assistant's Audio Pipeline view |
+| Assist during Sendspin music | Wake detection, replies, local chimes, ducking and timer cancellation continue working |
+| HTTP/Sendspin switching | Starting one music source replaces the other without a stuck player or lost announcements |
+| Night pulse brightness | Toggle Night mode while a timer rings; pulses respect night brightness and return to normal after leaving night mode |
+| Effect changes after night pulses | Cancel ringing, then use volume and privacy controls; brightness is appropriate for the current mode |
+| Quiet chimes | Night mode suppresses wake and ready chimes; replies and ringing remain audible; turning night mode off restores normal chime behavior |
+| Countdown visibility | Disable Timer countdown on ring; sensors continue counting, the countdown hides, and ringing still sounds and lights the ring |
+
+Music Assistant may expose Home Assistant and Sendspin as two protocols of one
+player. Protocol badges alone do not confirm which transport is playing. See
+[Sendspin setup](USAGE.md#sendspin-beta), including the legacy-client setting
+required by this ESPHome version. Once playback works on one board, test
+grouped Sendspin playback and synchronization too.
+
 ## Basic test
 
 This short sequence is the minimum useful beta report:
 
 | Test | Expected result |
 |---|---|
-| Browser installation | The project installer flashes the selected beta, exposes Wi-Fi provisioning after reconnecting and the device is discovered by Home Assistant |
-| Cold power-on | Board joins Wi-Fi and Home Assistant; startup sound has normal speed and pitch |
+| Browser installation | The installer shows separate Stable and Beta choices. Choosing Beta installs the displayed version; after reconnecting, Wi-Fi provisioning is available and Home Assistant discovers the device |
+| Cold power-on | Board joins Wi-Fi and Home Assistant; the startup sound has normal speed and pitch when enabled and night mode is off |
 | Managed update | Beta firmware detects an announced pre-release, installs it and returns online with Wi-Fi and saved settings intact |
 | Wake word | An enabled wake word is detected at normal speaking distance |
 | Short command | Capture starts, ends naturally and produces the correct response |
@@ -51,7 +74,7 @@ This short sequence is the minimum useful beta report:
 | Volume controls | Key 1 raises and Key 3 lowers volume in 5% steps; the blue ring follows the level |
 | Contextual action button | Key 2 stops ringing, an active Assist run or an announcement before falling back to music play/pause or manual Assist start |
 | Physical ring stop | Key 2 stops a voice timer or external ring request, including while the microphone is muted |
-| Physical mute | Boot toggles microphone mute; after a bright pulse the ring stays dim red and wake words are ignored while muted |
+| Physical mute | Boot toggles microphone mute; the ring briefly lights red, then stays dim red and wake words are ignored while muted |
 | Voice timer | The violet bar drains with the closest timer; it then rings and can be stopped |
 | External ringing | The Home Assistant `start_ringing` action rings locally and `stop_ringing` restores normal playback and LEDs |
 | Reset | The board returns to ready state and responds again |
@@ -74,7 +97,7 @@ network problems:
 Expected behavior:
 
 - wake-word detection continues during playback;
-- the wake chime is audible;
+- the wake chime is audible when enabled and outside night mode;
 - music is strongly ducked while listening;
 - the complete reply plays;
 - music resumes without requiring a manual stop/start;
@@ -116,6 +139,8 @@ Change each of the following, reboot once, and verify the saved state:
 - wake-word sensitivity;
 - wake and boot sound switches;
 - LED brightness;
+- night mode and night LED brightness;
+- timer-countdown visibility;
 - listening, thinking and replying effects;
 - post-AFE microphone gain.
 
@@ -137,6 +162,9 @@ These tests are useful but not required for every tester:
   creates the complete editable YAML rather than a remote package wrapper.
   Taking control alone must not alter the running precompiled firmware; an
   actual source build still requires a host with sufficient memory.
+  For the v2.1.0 beta, replace the imported stable configuration with the
+  pre-release's attached YAML before compiling, as described in
+  [source preparation](INSTALLATION.md#2-prepare-the-editable-device-file).
 
 Do not factory-reset the device merely for a beta test. A factory reset erases
 saved preferences and is not part of an ordinary update or rollback.

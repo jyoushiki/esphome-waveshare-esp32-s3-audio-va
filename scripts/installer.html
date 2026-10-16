@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waveshare ESP32-S3 Voice Assistant</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.6; }
+    body { max-width: 960px; margin: auto; padding: 2rem; }
+    h1 { line-height: 1.2; }
+    a { color: light-dark(#035ec5, #7db6ff); }
+    .channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 1.5rem; }
+    section { border: 1px solid light-dark(#d0d7de, #484f58); border-radius: 10px; padding: 1.5rem; }
+    section h2 { margin: 0; }
+    .label { font-size: 1rem; font-weight: normal; }
+    .version { font-size: 1.3rem; font-weight: bold; }
+    button { font: inherit; padding: .65rem 1rem; border: 0; border-radius: 5px; background: #0366d6; color: white; cursor: pointer; }
+    .unsupported { display: none; }
+    esp-web-install-button[install-unsupported] + .unsupported { display: block; }
+    body.insecure esp-web-install-button { display: none; }
+    #secure-warning { display: none; }
+    body.insecure #secure-warning { display: block; }
+    footer { margin-top: 2rem; border-top: 1px solid light-dark(#d0d7de, #484f58); padding-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Waveshare ESP32-S3 Voice Assistant</h1>
+  <p>Choose a release, connect your board with a USB data cable and select Connect.
+    After installation, reconnect to set up Wi-Fi and add the device to Home Assistant.</p>
+  <p id="secure-warning" role="alert">Browser installation requires HTTPS.
+    Download a factory image below and install it with <a href="https://web.esphome.io/">ESPHome Web</a>.</p>
+  <main class="channels" aria-label="Firmware releases">
+    <section aria-labelledby="stable-heading">
+      <h2 id="stable-heading">Stable <span class="label">· Recommended</span></h2>
+      <p class="version">$stable_version</p>
+      <p>The latest stable release for everyday use.</p>
+      <esp-web-install-button manifest="firmware/stable/manifest.json">
+        <button slot="activate">Connect to install Stable</button>
+      </esp-web-install-button>
+      <p class="unsupported">Use Chrome or Edge with Web Serial support, or download the factory image for manual installation.</p>
+      <p><a href="firmware/stable/waveshare-voice-esp32s3.factory.bin" download>Download Stable factory image</a><br>
+        <a href="$stable_release">Stable release notes</a> · <a href="$stable_source">Stable source YAML</a></p>
+      <p><a href="$stable_docs">Stable documentation</a></p>
+    </section>
+    <section aria-labelledby="beta-heading">
+      <h2 id="beta-heading">Beta <span class="label">· For testing</span></h2>
+      <p class="version">$beta_version</p>
+      <p>Try upcoming changes. Beta firmware may contain bugs. The channels show the same version when no newer beta is available.</p>
+      <esp-web-install-button manifest="firmware/beta/manifest.json">
+        <button slot="activate">Connect to install Beta</button>
+      </esp-web-install-button>
+      <p class="unsupported">Use Chrome or Edge with Web Serial support, or download the factory image for manual installation.</p>
+      <p><a href="firmware/beta/waveshare-voice-esp32s3.factory.bin" download>Download Beta factory image</a><br>
+        <a href="$beta_release">Beta release notes</a> · <a href="$beta_source">Beta source YAML</a></p>
+      <p><a href="$beta_docs">Beta documentation</a></p>
+    </section>
+  </main>
+  <footer>
+    <p>Powered by <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a> and <a href="https://esphome.io/">ESPHome</a>.</p>
+  </footer>
+  <script>
+    if (!window.isSecureContext) document.body.classList.add('insecure');
+  </script>
+</body>
+</html>

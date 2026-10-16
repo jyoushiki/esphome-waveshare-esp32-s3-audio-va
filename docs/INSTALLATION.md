@@ -4,6 +4,11 @@ This guide applies to **this repository's firmware**. It does not apply to
 Michał Zaniewicz's stock-ESPHome implementation, whose audio architecture and
 package source are different.
 
+For guides that match your firmware, use the documentation link under its
+channel in the browser installer. It opens the README for that release, with
+links to all its guides. The documentation on `main` covers stable firmware;
+`dev` may include unreleased changes.
+
 ## Choose an installation method
 
 The **precompiled firmware is the recommended installation method**. It gives
@@ -27,10 +32,12 @@ limits, hidden-SSID behavior, a custom boot-sound source or firmware changes.
 
 Open the project's **[browser installer](https://jyoushiki.github.io/esphome-waveshare-esp32-s3-audio-va/)**
 in a Chromium-based browser with Web Serial support, such as Chrome or Edge.
-Connect the board with a USB data cable and select **Connect**:
+Choose **Stable** (recommended) or **Beta** (for testing), check its displayed
+version, then connect the board with a USB data cable and select its **Connect**
+button:
 
-<img src="ewt_connect.png"
-     alt="Connect button on the project browser installer"
+<img src="connect_v2.png"
+     alt="Stable and Beta firmware choices with separate Connect buttons"
      width="700">
 
 Choose the board's serial port when prompted, then select **Install Waveshare
@@ -43,14 +50,18 @@ ESP32-S3 Voice Assistant**:
 Confirm the installation and wait for flashing and reboot to complete. The page
 displays the exact release version it will flash.
 
-The installer is generated with
-[`ewt-gen`](https://github.com/esphome/ewt-gen) and ESP Web Tools from the same
-credential-free universal image attached to the corresponding GitHub release.
+The installer uses ESP Web Tools and the same credential-free universal image
+attached to the corresponding GitHub release.
 No firmware compilation or ESPHome Device Builder is required.
 
-The page follows the most recently published firmware release. During the 2.0
-public-beta period this is a beta image; its version is shown before flashing.
-Normal and beta managed-update channels can be selected after installation.
+Each channel has its own version, install button, factory-image download,
+release notes and source YAML. Publishing a beta leaves Stable on the latest
+stable release. Both channels show the same version when no newer beta is
+available.
+
+The documentation link opens that release's README, with guides for
+installation, usage, troubleshooting, hardware, diagnostics and beta testing.
+After installation, you can select a managed Stable or Beta update channel.
 
 ### 2. Provision Wi-Fi
 
@@ -271,6 +282,11 @@ can also be provisioned over USB through ESPHome Web because the complete YAML
 includes Improv Serial.
 
 ### 2. Prepare the editable device file
+
+For the v2.1.0 beta, use the YAML attached to the pre-release, including after
+Take control. The device's source-import URL points to `main` and imports the
+stable configuration. Replace it with the beta attachment before compiling,
+keeping your personal settings and secrets.
 
 If you did not use Take control, download the attached `waveshare-va.yaml` from
 the GitHub release or pre-release you intend to build. The attachment is the
